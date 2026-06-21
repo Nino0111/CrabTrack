@@ -2,610 +2,1425 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CrabTrack 10 | Official Monitoring System</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-<script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        primary: '#0A1628',
-        secondary: '#0F1E38',
-        accent: '#00D4AA',
-        accent2: '#00A882',
-        warning: '#F59E0B',
-        danger: '#EF4444',
-        neutral: '#1A2E52',
-        text: '#E8F4F1',
-        textMuted: '#8BAFC4',
-      },
-      fontFamily: {
-        mono: ['Courier New', 'monospace'],
-      },
-    }
-  }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crab Track v2</title>
+<style>
+:root {
+  --bg:#0A1628;--bg2:#0F1E38;--bg3:#152544;--bg4:#1A2E52;
+  --border:rgba(0,212,170,0.15);--border2:rgba(0,212,170,0.3);
+  --teal:#00D4AA;--teal2:#00A882;--teal-dim:rgba(0,212,170,0.1);
+  --amber:#F59E0B;--amber-dim:rgba(245,158,11,0.1);
+  --red:#EF4444;--red-dim:rgba(239,68,68,0.1);
+  --blue:#3B82F6;--blue-dim:rgba(59,130,246,0.1);
+  --purple:#A855F7;--purple-dim:rgba(168,85,247,0.1);
+  --text:#E8F4F1;--text2:#8BAFC4;--text3:#4A7090;
+  --mono:'Courier New',Courier,monospace;
+  --r:10px;--rs:6px;
 }
-</script>
-<style type="text/tailwindcss">
-@layer utilities {
-  .content-auto { content-visibility: auto; }
-  .scrollbar-thin { scrollbar-width: thin; }
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #1A2E52; border-radius: 2px; }
-  .glow { box-shadow: 0 0 12px rgba(0, 212, 170, 0.4); }
-  .glow-amber { box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
-  .glow-red { box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh}
+
+/* LAYOUT */
+.app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:220px 1fr;height:100vh;overflow:hidden}
+.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:8px}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.main{overflow-y:auto;padding:18px}
+
+/* TOPBAR */
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:glow 2s infinite;flex-shrink:0}
+@keyframes glow{0%,100%{opacity:1;box-shadow:0 0 8px var(--teal)}50%{opacity:.5;box-shadow:0 0 3px var(--teal)}}
+.logo-text{font-size:13px;font-weight:bold;letter-spacing:.08em}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:.05em}
+.conn-badge{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;white-space:nowrap}
+.conn-badge.online{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.conn-badge.offline{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.conn-badge.demo{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.top-time{font-size:10px;color:var(--text3);white-space:nowrap}
+.tbtn{background:none;border:1px solid var(--border2);border-radius:var(--rs);padding:4px 10px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:11px;white-space:nowrap}
+.tbtn:hover{background:var(--teal-dim);color:var(--teal);border-color:var(--teal)}
+.tbtn.active{background:var(--teal-dim);color:var(--teal);border-color:var(--teal)}
+#alertBell{position:relative}
+.bell-dot{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--red);display:none}
+.bell-dot.show{display:block}
+
+/* SIDEBAR NAV */
+.sb-nav{padding:10px 8px;border-bottom:1px solid var(--border)}
+.sb-nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;font-size:11px;color:var(--text2);margin-bottom:2px;transition:all .15s}
+.sb-nav-item:hover{background:var(--bg3);color:var(--text)}
+.sb-nav-item.active{background:var(--teal-dim);color:var(--teal);border-left:2px solid var(--teal)}
+.sb-nav-icon{font-size:14px;width:18px;text-align:center}
+
+/* SIDEBAR SENSORS */
+.sb-sensors{padding:10px 8px;border-bottom:1px solid var(--border)}
+.sb-sec-label{font-size:9px;color:var(--text3);letter-spacing:.1em;padding:0 6px;margin-bottom:6px}
+.sensor-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;position:relative;overflow:hidden}
+.sensor-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;border-radius:1px 0 0 1px}
+.sensor-block.ph::before{background:var(--teal)}
+.sensor-block.sal::before{background:var(--blue)}
+.sensor-block.tmp::before{background:var(--amber)}
+.sensor-block.alert-sensor{border-color:rgba(239,68,68,.5);animation:alertPulse 1.5s infinite}
+@keyframes alertPulse{0%,100%{border-color:rgba(239,68,68,.5)}50%{border-color:rgba(239,68,68,1)}}
+.sb-label{font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px}
+.sb-val{font-size:24px;font-weight:bold;line-height:1;color:var(--text)}
+.sb-unit{font-size:11px;font-weight:normal;color:var(--text2);margin-left:3px}
+.sb-bar{height:3px;background:var(--bg4);border-radius:2px;margin:6px 0 3px;overflow:hidden}
+.sb-bar-fill{height:100%;border-radius:2px;transition:width 1s ease}
+.sb-range{display:flex;justify-content:space-between;font-size:9px;color:var(--text3)}
+.sb-badge{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:4px;display:inline-block}
+.sb-badge.ok{color:var(--teal);background:var(--teal-dim);border:1px solid rgba(0,212,170,.3)}
+.sb-badge.warn{color:var(--amber);background:var(--amber-dim);border:1px solid rgba(245,158,11,.3)}
+.sb-badge.err{color:var(--red);background:var(--red-dim);border:1px solid rgba(239,68,68,.3)}
+
+/* SIDEBAR COMP LIST */
+.sb-complist{padding:8px;flex:1}
+.cl-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--rs);cursor:pointer;margin-bottom:2px;transition:background .15s}
+.cl-item:hover{background:var(--bg3)}
+.cl-item.active{background:var(--teal-dim);border-left:2px solid var(--teal)}
+.cl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cl-name{flex:1;font-size:10px;color:var(--text2)}
+.cl-item.active .cl-name{color:var(--teal)}
+.cl-w{font-size:10px;color:var(--text3)}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* STAT CARDS */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 var(--r) var(--r)}
+.stat-card.c-teal::after{background:var(--teal)}
+.stat-card.c-amber::after{background:var(--amber)}
+.stat-card.c-red::after{background:var(--red)}
+.stat-card.c-blue::after{background:var(--blue)}
+.stat-card.c-purple::after{background:var(--purple)}
+.stat-lbl{font-size:9px;color:var(--text3);letter-spacing:.09em;margin-bottom:5px}
+.stat-val{font-size:22px;font-weight:bold;color:var(--text);line-height:1}
+.stat-unit{font-size:11px;font-weight:normal;color:var(--text2)}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* COMPARTMENT GRID */
+.grid-lbl{font-size:9px;color:var(--text3);letter-spacing:.1em;margin-bottom:10px}
+.comp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.comp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;cursor:pointer;transition:all .15s;position:relative}
+.comp-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.comp-card.sel-card{border-color:var(--teal)}
+.comp-card.warn-card{border-color:rgba(245,158,11,.5)}
+.comp-card.alert-card{border-color:rgba(239,68,68,.6);animation:alertPulse 2s infinite}
+.cc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cc-id{font-size:9px;color:var(--text3);letter-spacing:.07em}
+.cc-dot{width:6px;height:6px;border-radius:50%}
+.tank{position:relative;height:56px;background:var(--bg4);border-radius:5px;overflow:hidden;margin-bottom:8px;border:1px solid var(--border)}
+.tank-water{position:absolute;bottom:0;left:0;right:0;transition:height 1.2s cubic-bezier(.4,0,.2,1);border-radius:0 0 4px 4px;opacity:.75}
+.tw-ok{background:linear-gradient(180deg,#00D4AA,#00A882)}
+.tw-warn{background:linear-gradient(180deg,#F59E0B,#D97706)}
+.tw-alert{background:linear-gradient(180deg,#EF4444,#DC2626)}
+.tank-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);z-index:2}
+.cc-name{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-gain{font-size:10px;margin-top:2px}
+.harvest-badge{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:4px;display:inline-block;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+
+/* PANELS */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.panel-title{font-size:10px;color:var(--text2);letter-spacing:.08em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.chart-wrap{position:relative;width:100%;height:180px}
+.chart-wrap.tall{height:220px}
+
+/* DETAIL PAGE */
+.det-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.det-title{font-size:15px;font-weight:bold;color:var(--text)}
+.det-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.met-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.met-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.met-lbl{font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:4px}
+.met-val{font-size:22px;font-weight:bold;line-height:1}
+.met-unit{font-size:11px;font-weight:normal;color:var(--text2)}
+.met-sub{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:6px 14px;font-size:11px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:var(--mono)}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* FORMS */
+.form-row{display:grid;gap:8px;align-items:end}
+.form-row.c3{grid-template-columns:1fr 1fr 1fr auto}
+.form-row.c4{grid-template-columns:1fr 1fr 1fr 1fr auto}
+.fg label{display:block;font-size:9px;color:var(--text3);letter-spacing:.07em;margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--teal)}
+.fg textarea{resize:vertical;min-height:56px}
+.btn-p{background:var(--teal);color:#0A1628;border:none;border-radius:var(--rs);padding:7px 14px;font-family:var(--mono);font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap}
+.btn-p:hover{background:var(--teal2)}
+.btn-s{background:none;border:1px solid var(--border2);border-radius:var(--rs);padding:7px 14px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:11px;white-space:nowrap}
+.btn-s:hover{background:var(--bg3)}
+.btn-danger{background:none;border:1px solid rgba(239,68,68,.4);border-radius:var(--rs);padding:7px 14px;color:var(--red);cursor:pointer;font-family:var(--mono);font-size:11px}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-size:9px;color:var(--text3);letter-spacing:.07em;text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(0,212,170,.05);color:var(--text2)}
+.tbl tr:hover td{background:var(--bg3)}
+.td-m{font-family:var(--mono);color:var(--text)}
+
+/* ALERT PAGE */
+.alert-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.alert-item.active-alert{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04)}
+.alert-item.warn-alert{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.04)}
+.ai-icon{font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-title{font-size:12px;font-weight:bold;color:var(--text);margin-bottom:2px}
+.ai-sub{font-size:10px;color:var(--text3)}
+.ai-time{font-size:10px;color:var(--text3);margin-left:auto;white-space:nowrap}
+
+/* THRESHOLD SETTINGS */
+.th-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.th-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.th-label{font-size:10px;color:var(--text2);margin-bottom:10px;font-weight:bold}
+.th-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+
+/* AI CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:420px}
+.chat-messages{flex:1;overflow-y:auto;padding:10px 0;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:10px 14px;border-radius:var(--r);font-size:12px;line-height:1.6}
+.msg.user{align-self:flex-end;background:var(--teal-dim);border:1px solid rgba(0,212,170,.3);color:var(--text)}
+.msg.ai{align-self:flex-start;background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+.msg.ai .msg-lbl{font-size:9px;color:var(--purple);letter-spacing:.06em;margin-bottom:4px}
+.msg.typing{color:var(--text3);font-style:italic}
+.chat-input-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 12px;outline:none;resize:none;height:38px}
+.chat-input:focus{border-color:var(--purple)}
+.quick-prompts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.qp{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--text3);cursor:pointer;transition:all .15s}
+.qp:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-dim)}
+
+/* ANALYTICS PAGE */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+
+/* FEEDING PAGE */
+.feed-schedule{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+.feed-day{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 4px;text-align:center}
+.feed-day-lbl{font-size:9px;color:var(--text3);letter-spacing:.06em;margin-bottom:6px}
+.feed-dot{width:8px;height:8px;border-radius:50%;margin:2px auto}
+.feed-dot.fed{background:var(--teal)}
+.feed-dot.partial{background:var(--amber)}
+.feed-dot.missed{background:var(--red)}
+.feed-dot.upcoming{background:var(--bg4);border:1px solid var(--border2)}
+
+/* HARVEST PREDICTOR */
+.harvest-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.hv-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
+.hv-days{font-size:20px;font-weight:bold;color:var(--purple)}
+.hv-lbl{font-size:9px;color:var(--text3);margin-top:2px}
+.hv-id{font-size:10px;color:var(--text2);margin-bottom:4px}
+.hv-ready{color:var(--teal) !important}
+.hv-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden}
+.hv-bar-fill{height:100%;border-radius:2px;background:var(--purple);transition:width 1s}
+
+/* CONFIG MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(5,10,20,.85);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:22px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:bold;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:10px;color:var(--text3);margin-bottom:18px}
+.mf{margin-bottom:12px}
+.mf label{display:block;font-size:9px;color:var(--text3);letter-spacing:.07em;margin-bottom:4px}
+.mf input,.mf select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none}
+.mf input:focus{border-color:var(--teal)}
+.mf-hint{font-size:10px;color:var(--text3);margin-top:3px}
+.json-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:10px;color:var(--text3);line-height:1.7;margin-top:8px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* ALERT MODAL */
+.alert-modal{background:var(--bg2);border:1px solid rgba(239,68,68,.4);border-radius:var(--r);padding:20px;width:380px;max-width:95vw}
+
+/* TOAST */
+#toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--text);opacity:0;pointer-events:none;transition:opacity .25s;z-index:200;max-width:300px}
+#toast.show{opacity:1}
+#toast.t-ok{border-color:rgba(0,212,170,.5);color:var(--teal)}
+#toast.t-warn{border-color:rgba(245,158,11,.5);color:var(--amber)}
+#toast.t-err{border-color:rgba(239,68,68,.5);color:var(--red)}
+
+/* REPORT PAGE */
+.report-section{margin-bottom:20px}
+.report-section h3{font-size:11px;color:var(--text2);letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .comp-grid,.harvest-row{grid-template-columns:repeat(2,1fr)}
+  .analytics-grid{grid-template-columns:1fr}
+  .met-row{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 </head>
-<body class="bg-primary text-text font-mono min-h-screen">
+<body>
+<div class="app">
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen" class="fixed inset-0 z-50 bg-primary/95 backdrop-blur-sm flex items-center justify-center p-4">
-  <div class="w-full max-w-md bg-secondary border border-accent/20 rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,170,0.15)]">
-    <div class="text-center mb-6">
-      <div class="flex items-center justify-center gap-3 mb-3">
-        <div class="w-3 h-3 rounded-full bg-accent glow animate-pulse"></div>
-        <h1 class="text-lg font-bold tracking-widest">CRABTRACK 10</h1>
-      </div>
-      <p class="text-[10px] text-textMuted uppercase tracking-wider">Official Monitoring System · Central Luzon</p>
-    </div>
-
-    <div class="space-y-4">
-      <div>
-        <label class="block text-xs text-textMuted mb-1.5">Username</label>
-        <input type="text" id="loginUser" value="admin" class="w-full bg-neutral/40 border border-accent/20 rounded px-3 py-2 text-sm focus:border-accent outline-none transition">
-      </div>
-      <div>
-        <label class="block text-xs text-textMuted mb-1.5">Password</label>
-        <input type="password" id="loginPass" value="123456" class="w-full bg-neutral/40 border border-accent/20 rounded px-3 py-2 text-sm focus:border-accent outline-none transition">
-      </div>
-
-      <button onclick="doLogin()" class="w-full bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30 rounded py-2.5 font-semibold transition">
-        <i class="fa fa-sign-in mr-2"></i> Sign In
-      </button>
-
-      <p class="text-center text-[10px] text-textMuted mt-2">
-        Authorized Personnel Only • Version 1.0.4
-      </p>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN SYSTEM -->
-<div id="mainApp" class="hidden">
-<div class="grid grid-rows-[56px_1fr] grid-cols-1 md:grid-cols-[240px_1fr] h-screen overflow-hidden">
-
-  <!-- TOP BAR -->
-  <header class="col-span-1 md:col-span-2 bg-secondary border-b border-accent/15 px-4 md:px-5 flex items-center justify-between z-10">
-    <div class="flex items-center gap-3">
-      <div class="w-2.5 h-2.5 rounded-full bg-accent glow animate-pulse hidden sm:block"></div>
-      <div>
-        <h1 class="text-sm font-bold tracking-widest">CRABTRACK 10</h1>
-        <p class="text-[9px] md:text-[10px] text-textMuted tracking-wider">OFFICIAL SYSTEM · CENTRAL LUZON</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-2 md:gap-4">
-      <span id="connBadge" class="px-2 md:px-3 py-1 rounded-full text-[10px] md:text-[11px] border border-accent/30 bg-accent/10 text-accent flex items-center gap-1">
-        <i class="fa fa-circle-o"></i> SIMULATION MODE
-      </span>
-      <span class="text-[10px] md:text-xs text-textMuted hidden sm:block" id="topTime"></span>
-      <button class="border border-accent/30 rounded px-2 md:px-3 py-1 text-textMuted hover:bg-accent/10 hover:text-accent transition text-[10px] md:text-xs" onclick="openConfig()">
-        <i class="fa fa-cog"></i>
-      </button>
-      <button class="border border-danger/30 rounded px-2 md:px-3 py-1 text-danger hover:bg-danger/10 transition text-[10px] md:text-xs" onclick="doLogout()">
-        <i class="fa fa-sign-out"></i>
-      </button>
-    </div>
-  </header>
-
-  <!-- SIDEBAR - Desktop Only -->
-  <aside class="hidden md:block bg-secondary border-r border-accent/15 overflow-y-auto scrollbar-thin p-4">
-    <div class="mb-6">
-      <p class="text-[9px] font-bold text-textMuted uppercase tracking-widest mb-3">Water Parameters</p>
-      
-      <!-- pH Sensor -->
-      <div class="bg-neutral/40 border border-accent/10 rounded-lg p-3 mb-4">
-        <p class="text-[9px] text-textMuted mb-1">pH LEVEL</p>
-        <div class="flex items-baseline justify-between">
-          <span class="text-2xl font-bold" id="sbPh">7.8</span>
-          <span class="text-xs text-textMuted">pH</span>
-        </div>
-        <div class="h-2 bg-primary rounded-full mt-2 overflow-hidden">
-          <div id="sbPhBar" class="h-full bg-accent rounded-full transition-all" style="width: 65%"></div>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <span class="text-[8px] text-textMuted">Opt: 7.5–8.5</span>
-          <span id="sbPhBadge" class="text-[8px] bg-accent/10 text-accent border border-accent/20 rounded-full px-2 py-0.5">Optimal</span>
-        </div>
-      </div>
-
-      <!-- Salinity Sensor -->
-      <div class="bg-neutral/40 border border-accent/10 rounded-lg p-3">
-        <p class="text-[9px] text-textMuted mb-1">SALINITY</p>
-        <div class="flex items-baseline justify-between">
-          <span class="text-2xl font-bold" id="sbSal">15.2</span>
-          <span class="text-xs text-textMuted">ppt</span>
-        </div>
-        <div class="h-2 bg-primary rounded-full mt-2 overflow-hidden">
-          <div id="sbSalBar" class="h-full bg-sky-500 rounded-full transition-all" style="width: 45%"></div>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <span class="text-[8px] text-textMuted">Opt: 10–25</span>
-          <span id="sbSalBadge" class="text-[8px] bg-accent/10 text-accent border border-accent/20 rounded-full px-2 py-0.5">Optimal</span>
-        </div>
-      </div>
-    </div>
-
+<!-- ═══ TOPBAR ═══════════════════════════════════════════════ -->
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo-dot"></div>
     <div>
-      <p class="text-[9px] font-bold text-textMuted uppercase tracking-widest mb-3">Compartments</p>
-      <div id="sidebarList" class="space-y-1"></div>
+      <div class="logo-text">CRAB TRACK <span style="color:var(--teal);font-size:10px">v2</span></div>
+      <div class="logo-sub">ESP32 · HX711 ×10 · pH · EC/TDS · TEMP · FIREBASE</div>
     </div>
-  </aside>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span class="conn-badge demo" id="connBadge">⬤ DEMO MODE</span>
+    <span class="conn-badge" id="fbBadge" style="border-color:var(--text3);color:var(--text3);display:none">☁ FIREBASE</span>
+    <span class="top-time" id="topTime"></span>
+    <button class="tbtn" id="alertBell" onclick="showPage('alerts')">🔔 Alerts<span class="bell-dot" id="bellDot"></span></button>
+    <button class="tbtn" onclick="openConfig()">⚙ Config</button>
+  </div>
+</header>
 
-  <!-- MAIN CONTENT -->
-  <main class="overflow-y-auto scrollbar-thin p-3 md:p-5">
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sb-nav">
+    <div class="sb-nav-item active" onclick="showPage('overview')" id="nav-overview"><span class="sb-nav-icon">📊</span>Overview</div>
+    <div class="sb-nav-item" onclick="showPage('analytics')" id="nav-analytics"><span class="sb-nav-icon">📈</span>Analytics</div>
+    <div class="sb-nav-item" onclick="showPage('feeding')" id="nav-feeding"><span class="sb-nav-icon">🦀</span>Feeding Log</div>
+    <div class="sb-nav-item" onclick="showPage('alerts')" id="nav-alerts"><span class="sb-nav-icon">🔔</span>Alerts</div>
+    <div class="sb-nav-item" onclick="showPage('ai')" id="nav-ai"><span class="sb-nav-icon">🤖</span>AI Assistant</div>
+    <div class="sb-nav-item" onclick="showPage('reports')" id="nav-reports"><span class="sb-nav-icon">📋</span>Reports</div>
+  </div>
+  <div class="sb-sensors" id="sbSensors"></div>
+  <div class="sb-complist" id="sbCompList"></div>
+</aside>
 
-    <!-- 📱 MOBILE WATER PARAMETERS - NOW VISIBLE ON PHONE 📱 -->
-    <div class="grid grid-cols-2 gap-3 mb-5 md:hidden">
-      <!-- pH Sensor -->
-      <div class="bg-secondary border border-accent/10 rounded-lg p-3">
-        <p class="text-[9px] text-textMuted mb-1">pH LEVEL</p>
-        <div class="flex items-baseline justify-between">
-          <span class="text-xl font-bold" id="mobPh">7.8</span>
-          <span class="text-xs text-textMuted">pH</span>
-        </div>
-        <div class="h-2 bg-primary rounded-full mt-2 overflow-hidden">
-          <div id="mobPhBar" class="h-full bg-accent rounded-full transition-all" style="width: 65%"></div>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <span class="text-[8px] text-textMuted">7.5–8.5</span>
-          <span id="mobPhBadge" class="text-[8px] bg-accent/10 text-accent border border-accent/20 rounded-full px-2 py-0.5">Optimal</span>
-        </div>
-      </div>
+<!-- ═══ MAIN ══════════════════════════════════════════════════ -->
+<main class="main">
 
-      <!-- Salinity Sensor -->
-      <div class="bg-secondary border border-accent/10 rounded-lg p-3">
-        <p class="text-[9px] text-textMuted mb-1">SALINITY</p>
-        <div class="flex items-baseline justify-between">
-          <span class="text-xl font-bold" id="mobSal">15.2</span>
-          <span class="text-xs text-textMuted">ppt</span>
-        </div>
-        <div class="h-2 bg-primary rounded-full mt-2 overflow-hidden">
-          <div id="mobSalBar" class="h-full bg-sky-500 rounded-full transition-all" style="width: 45%"></div>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <span class="text-[8px] text-textMuted">10–25</span>
-          <span id="mobSalBadge" class="text-[8px] bg-accent/10 text-accent border border-accent/20 rounded-full px-2 py-0.5">Optimal</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Overview Page -->
-    <div class="page active" id="pageOverview">
-      <!-- Stats Row -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <div class="bg-secondary border border-accent/10 rounded-lg p-3 md:p-4">
-          <p class="text-[9px] text-textMuted uppercase mb-1">Total Crabs</p>
-          <p class="text-xl font-bold text-white" id="sumTotal">10</p>
-          <p class="text-[9px] text-textMuted mt-1">All active</p>
-        </div>
-        <div class="bg-secondary border border-accent/10 rounded-lg p-3 md:p-4">
-          <p class="text-[9px] text-textMuted uppercase mb-1">Avg Weight</p>
-          <p class="text-xl font-bold text-white" id="sumAvg">185.4<span class="text-xs text-textMuted">g</span></p>
-          <p class="text-[9px] text-textMuted mt-1">± 12.5g</p>
-        </div>
-        <div class="bg-secondary border border-accent/10 rounded-lg p-3 md:p-4">
-          <p class="text-[9px] text-textMuted uppercase mb-1">Avg Gain</p>
-          <p class="text-xl font-bold text-accent" id="sumGain">+24.2<span class="text-xs text-textMuted">g</span></p>
-          <p class="text-[9px] text-textMuted mt-1">From initial</p>
-        </div>
-        <div class="bg-secondary border border-accent/10 rounded-lg p-3 md:p-4">
-          <p class="text-[9px] text-textMuted uppercase mb-1">Alerts</p>
-          <p class="text-xl font-bold text-warning" id="sumAlerts">0</p>
-          <p class="text-[9px] text-textMuted mt-1" id="sumAlertSub">System Normal</p>
-        </div>
-      </div>
-
-      <!-- Compartment Grid -->
-      <p class="text-[10px] md:text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Compartment Overview — Tap to View Details</p>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6" id="compGrid"></div>
-
-      <!-- Charts Row -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div class="bg-secondary border border-accent/10 rounded-lg p-4">
-          <p class="text-xs font-semibold mb-3 text-center">Water Parameters History</p>
-          <div class="h-[200px]"><canvas id="waterChart"></canvas></div>
-        </div>
-        <div class="bg-secondary border border-accent/10 rounded-lg p-4">
-          <p class="text-xs font-semibold mb-3 text-center">Weight Growth Trend</p>
-          <div class="h-[200px]"><canvas id="weightChart"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex flex-wrap gap-2">
-        <button class="text-xs px-3 py-2 bg-accent/10 text-accent border border-accent/20 rounded hover:bg-accent/20 transition" onclick="exportCSV()">
-          <i class="fa fa-download mr-1"></i> Export Data
-        </button>
-        <button class="text-xs px-3 py-2 bg-neutral/40 text-textMuted border border-accent/10 rounded hover:bg-neutral/60 transition" onclick="simulateUpdate()">
-          <i class="fa fa-refresh mr-1"></i> Refresh Sensors
-        </button>
-      </div>
-    </div>
-
-    <!-- Detail Page -->
-    <div class="page hidden" id="pageDetail">
-      <div class="flex justify-between items-center mb-5">
-        <div>
-          <button class="md:hidden text-xs mb-2 text-accent" onclick="showOverview()">
-            <i class="fa fa-arrow-left"></i> Back
-          </button>
-          <h2 class="text-lg font-bold" id="detTitle">Compartment C01</h2>
-          <p class="text-xs text-textMuted" id="detSub">Growth & History Log</p>
-        </div>
-        <button class="hidden md:block text-xs px-3 py-2 bg-neutral/40 border border-accent/10 rounded hover:bg-neutral/60 transition" onclick="showOverview()">
-          <i class="fa fa-arrow-left"></i> Back to Overview
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-        <div class="bg-secondary border border-accent/10 rounded-lg p-4 text-center">
-          <p class="text-[10px] text-textMuted uppercase mb-1">Current Weight</p>
-          <p class="text-2xl font-bold" id="detWeight">185.4 <span class="text-xs text-textMuted">g</span></p>
-          <p class="text-[10px] text-accent mt-1" id="detWeightChange">+2.4g since last check</p>
-        </div>
-        <div class="bg-secondary border border-accent/10 rounded-lg p-4 text-center">
-          <p class="text-[10px] text-textMuted uppercase mb-1">Initial Weight</p>
-          <p class="text-2xl font-bold" id="detInit">160.0 <span class="text-xs text-textMuted">g</span></p>
-          <p class="text-[10px] text-textMuted mt-1">Baseline</p>
-        </div>
-        <div class="bg-secondary border border-accent/10 rounded-lg p-4 text-center">
-          <p class="text-[10px] text-textMuted uppercase mb-1">Total Gain</p>
-          <p class="text-2xl font-bold text-accent" id="detGain">+25.4 <span class="text-xs text-textMuted">g</span></p>
-          <p class="text-[10px] text-textMuted mt-1" id="detGainPct">+15.8% growth</p>
-        </div>
-      </div>
-
-      <div class="bg-secondary border border-accent/10 rounded-lg p-4 mb-5">
-        <p class="text-xs font-semibold mb-3">Weight History (Last 7 Days)</p>
-        <div class="h-[220px]"><canvas id="detailChart"></canvas></div>
-      </div>
-
-      <div class="bg-secondary border border-accent/10 rounded-lg p-4">
-        <p class="text-xs font-semibold mb-3">Measurement Log</p>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="border-b border-accent/10">
-                <th class="text-left py-2 px-1 text-textMuted font-normal">Date</th>
-                <th class="text-left py-2 px-1 text-textMuted font-normal">Time</th>
-                <th class="text-left py-2 px-1 text-textMuted font-normal">Weight (g)</th>
-                <th class="text-left py-2 px-1 text-textMuted font-normal">Change</th>
-                <th class="text-left py-2 px-1 text-textMuted font-normal">Source</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </main>
-</div>
+<!-- ── OVERVIEW ── -->
+<div class="page active" id="pageOverview">
+  <div class="stat-row" id="statRow"></div>
+  <div class="harvest-row" id="harvestRow"></div>
+  <div class="grid-lbl">COMPARTMENTS — CLICK TO INSPECT</div>
+  <div class="comp-grid" id="compGrid"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn-s" onclick="manualRefresh()">↺ Refresh</button>
+    <button class="btn-s" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn-s" onclick="exportExcel()">📊 Export Excel</button>
+    <button class="btn-s" onclick="showPage('reports')">📋 Generate Report</button>
+    <button class="btn-danger" onclick="resetAll()">✕ Reset Data</button>
+  </div>
 </div>
 
-<!-- CONFIG MODAL -->
-<div id="configModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4">
-  <div class="bg-secondary border border-accent/20 rounded-lg p-5 w-full max-w-md">
-    <h3 class="text-lg font-bold mb-1">System Configuration</h3>
-    <p class="text-sm text-textMuted mb-4">Connect to ESP32 or keep simulation mode</p>
-    
-    <div class="mb-4">
-      <label class="block text-xs text-textMuted mb-2">ESP32 API Endpoint</label>
-      <input type="text" id="cfgEndpoint" placeholder="http://192.168.1.50/data" class="w-full bg-neutral/40 border border-accent/20 rounded p-2 text-sm focus:border-accent outline-none">
-      <p class="text-[10px] text-textMuted mt-1">Leave empty to use built-in simulation</p>
+<!-- ── DETAIL ── -->
+<div class="page" id="pageDetail">
+  <div class="det-hdr">
+    <div>
+      <div class="det-title" id="detTitle">Compartment C01</div>
+      <div class="det-sub" id="detSub">HX711 Load Cell · ESP32</div>
     </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-s" onclick="prevComp()">← Prev</button>
+      <button class="btn-s" onclick="nextComp()">Next →</button>
+      <button class="btn-s" onclick="showPage('overview')">↩ Overview</button>
+    </div>
+  </div>
+  <div class="met-row" id="detMetrics"></div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(this,'tab-weight')">⚖ Weight</div>
+    <div class="tab" onclick="switchTab(this,'tab-log')">📝 Log</div>
+    <div class="tab" onclick="switchTab(this,'tab-feeding')">🦀 Feeding</div>
+    <div class="tab" onclick="switchTab(this,'tab-ai')">🤖 AI</div>
+  </div>
 
-    <div class="flex gap-2 justify-end">
-      <button class="px-4 py-2 text-textMuted hover:text-white transition" onclick="closeConfig()">Cancel</button>
-      <button class="px-4 py-2 bg-accent/20 text-accent border border-accent/30 rounded hover:bg-accent/30 transition" onclick="saveConfig()">Save & Connect</button>
+  <div class="tab-content active" id="tab-weight">
+    <div class="panel"><div class="panel-title">WEIGHT HISTORY</div><div class="chart-wrap tall"><canvas id="detChart"></canvas></div></div>
+    <div class="panel">
+      <div class="panel-title">MANUAL WEIGHT ENTRY</div>
+      <div class="form-row c4">
+        <div class="fg"><label>WEIGHT (g)</label><input type="number" id="inW" placeholder="185.4" step="0.1"></div>
+        <div class="fg"><label>DATE</label><input type="date" id="inD"></div>
+        <div class="fg"><label>TIME</label><input type="time" id="inT"></div>
+        <div class="fg"><label>NOTE</label><input type="text" id="inN" placeholder="After feeding..."></div>
+        <button class="btn-p" onclick="logWeight()">+ LOG</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">HISTORY LOG</div>
+      <table class="tbl"><thead><tr><th>DATE</th><th>TIME</th><th>WEIGHT</th><th>CHANGE</th><th>NOTE</th><th></th></tr></thead>
+      <tbody id="weightLog"></tbody></table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-log">
+    <div class="panel">
+      <div class="panel-title">OBSERVATION LOG</div>
+      <div class="form-row c3" style="margin-bottom:10px">
+        <div class="fg"><label>DATE</label><input type="date" id="obsD"></div>
+        <div class="fg"><label>TYPE</label><select id="obsType"><option>Observation</option><option>Health Check</option><option>Water Change</option><option>Treatment</option><option>Other</option></select></div>
+        <div class="fg" style="grid-column:span 2"><label>NOTE</label><textarea id="obsNote" rows="2" placeholder="Describe what you observed..."></textarea></div>
+        <button class="btn-p" onclick="logObs()">+ ADD</button>
+      </div>
+      <table class="tbl"><thead><tr><th>DATE</th><th>TYPE</th><th>NOTE</th><th></th></tr></thead>
+      <tbody id="obsLog"></tbody></table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-feeding">
+    <div class="panel">
+      <div class="panel-title">FEEDING RECORD</div>
+      <div class="form-row c4" style="margin-bottom:10px">
+        <div class="fg"><label>DATE</label><input type="date" id="feedD"></div>
+        <div class="fg"><label>FEED TYPE</label><select id="feedType"><option>Fresh fish</option><option>Pellets</option><option>Squid</option><option>Shrimp</option><option>Mixed</option></select></div>
+        <div class="fg"><label>AMOUNT (g)</label><input type="number" id="feedAmt" placeholder="50" step="1"></div>
+        <div class="fg"><label>NOTE</label><input type="text" id="feedNote" placeholder="Optional..."></div>
+        <button class="btn-p" onclick="logFeed()">+ LOG</button>
+      </div>
+      <table class="tbl"><thead><tr><th>DATE</th><th>TYPE</th><th>AMOUNT</th><th>NOTE</th><th></th></tr></thead>
+      <tbody id="feedLog"></tbody></table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-ai">
+    <div class="panel">
+      <div class="panel-title">🤖 AI HEALTH ANALYSIS — <span style="color:var(--purple)">Claude</span></div>
+      <div class="quick-prompts" id="detAiPrompts"></div>
+      <div class="chat-wrap">
+        <div class="chat-messages" id="detAiChat"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="detAiInput" placeholder="Ask about this crab..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDetAI()}"></textarea>
+          <button class="btn-p" onclick="sendDetAI()">ASK</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast" class="fixed bottom-4 right-4 bg-secondary border border-accent/20 rounded-lg p-3 text-sm max-w-xs opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
+<!-- ── ANALYTICS ── -->
+<div class="page" id="pageAnalytics">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div style="font-size:14px;font-weight:bold">ANALYTICS & TRENDS</div>
+    <div style="display:flex;gap:8px">
+      <select id="analyticsDays" onchange="renderAnalytics()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 8px">
+        <option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
+      </select>
+    </div>
+  </div>
+  <div class="analytics-grid">
+    <div class="panel"><div class="panel-title">ALL COMPARTMENTS — WEIGHT TREND</div><div class="chart-wrap tall"><canvas id="chartAllWeight"></canvas></div></div>
+    <div class="panel"><div class="panel-title">AVERAGE DAILY GROWTH RATE (g/day)</div><div class="chart-wrap tall"><canvas id="chartGrowth"></canvas></div></div>
+    <div class="panel"><div class="panel-title">pH HISTORY</div><div class="chart-wrap"><canvas id="chartPh"></canvas></div></div>
+    <div class="panel"><div class="panel-title">SALINITY & TEMPERATURE HISTORY</div><div class="chart-wrap"><canvas id="chartSalTemp"></canvas></div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">HARVEST PREDICTION — TARGET 300g</div>
+    <div id="harvestTable"></div>
+  </div>
+</div>
 
+<!-- ── FEEDING ── -->
+<div class="page" id="pageFeeding">
+  <div style="font-size:14px;font-weight:bold;margin-bottom:16px">FEEDING LOG & SCHEDULE</div>
+  <div class="panel">
+    <div class="panel-title">THIS WEEK — FEEDING STATUS</div>
+    <div class="feed-schedule" id="feedWeek"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">LOG BULK FEEDING (ALL COMPARTMENTS)</div>
+    <div class="form-row c4" style="margin-bottom:0">
+      <div class="fg"><label>DATE</label><input type="date" id="bFeedD"></div>
+      <div class="fg"><label>FEED TYPE</label><select id="bFeedType"><option>Fresh fish</option><option>Pellets</option><option>Squid</option><option>Shrimp</option><option>Mixed</option></select></div>
+      <div class="fg"><label>AMOUNT EACH (g)</label><input type="number" id="bFeedAmt" placeholder="50"></div>
+      <div class="fg"><label>NOTE</label><input type="text" id="bFeedNote" placeholder="Optional..."></div>
+      <button class="btn-p" onclick="bulkFeed()">LOG ALL</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">RECENT FEEDING RECORDS</div>
+    <table class="tbl"><thead><tr><th>DATE</th><th>COMPARTMENT</th><th>FEED TYPE</th><th>AMOUNT</th><th>NOTE</th></tr></thead>
+    <tbody id="allFeedLog"></tbody></table>
+  </div>
+</div>
+
+<!-- ── ALERTS ── -->
+<div class="page" id="pageAlerts">
+  <div style="font-size:14px;font-weight:bold;margin-bottom:16px">ALERTS & THRESHOLDS</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div>
+      <div style="font-size:10px;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">ACTIVE ALERTS</div>
+      <div id="activeAlerts"><div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">No active alerts</div></div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">ALERT THRESHOLDS</div>
+      <div class="th-grid">
+        <div class="th-card">
+          <div class="th-label" style="color:var(--teal)">pH LIMITS</div>
+          <div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thPhMin" value="7.0" step="0.1"></div><div class="fg"><label>MAX</label><input type="number" id="thPhMax" value="8.5" step="0.1"></div></div>
+        </div>
+        <div class="th-card">
+          <div class="th-label" style="color:var(--blue)">SALINITY (ppt)</div>
+          <div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thSalMin" value="10" step="0.5"></div><div class="fg"><label>MAX</label><input type="number" id="thSalMax" value="25" step="0.5"></div></div>
+        </div>
+        <div class="th-card">
+          <div class="th-label" style="color:var(--amber)">TEMPERATURE (°C)</div>
+          <div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thTmpMin" value="24" step="0.5"></div><div class="fg"><label>MAX</label><input type="number" id="thTmpMax" value="30" step="0.5"></div></div>
+        </div>
+        <div class="th-card">
+          <div class="th-label" style="color:var(--red)">WEIGHT ALERT (g)</div>
+          <div class="th-row"><div class="fg"><label>ALERT BELOW</label><input type="number" id="thWtAlert" value="100" step="1"></div><div class="fg"><label>WARN BELOW</label><input type="number" id="thWtWarn" value="130" step="1"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn-p" onclick="saveThresholds()">Save Thresholds</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="soundAlerts" checked> Sound alerts
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">ALERT HISTORY</div>
+    <table class="tbl"><thead><tr><th>TIME</th><th>SENSOR</th><th>VALUE</th><th>THRESHOLD</th><th>STATUS</th></tr></thead>
+    <tbody id="alertHistory"></tbody></table>
+  </div>
+</div>
+
+<!-- ── AI ASSISTANT ── -->
+<div class="page" id="pageAi">
+  <div style="font-size:14px;font-weight:bold;margin-bottom:4px">🤖 AI HEALTH ASSISTANT</div>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Powered by Claude · Analyzes your live sensor data</div>
+  <div class="panel" style="margin-bottom:14px">
+    <div class="panel-title">QUICK ANALYSIS</div>
+    <div class="quick-prompts" id="globalAiPrompts"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">CHAT WITH CLAUDE</div>
+    <div class="chat-wrap" style="height:480px">
+      <div class="chat-messages" id="globalAiChat"></div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="globalAiInput" placeholder="Ask anything about your crab system..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGlobalAI()}"></textarea>
+        <button class="btn-p" onclick="sendGlobalAI()">ASK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REPORTS ── -->
+<div class="page" id="pageReports">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div style="font-size:14px;font-weight:bold">REPORTS</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-s" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn-p" onclick="exportExcel()">📊 Excel Report</button>
+    </div>
+  </div>
+  <div id="reportContent"></div>
+</div>
+
+</main>
+</div>
+
+<!-- ═══ CONFIG MODAL ════════════════════════════════════════ -->
+<div class="overlay" id="cfgOverlay">
+  <div class="modal">
+    <div class="modal-title">System Configuration</div>
+    <div class="modal-sub">Connect to your ESP32 and Firebase database</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-size:10px;color:var(--teal);letter-spacing:.08em;margin-bottom:10px">ESP32 DIRECT</div>
+        <div class="mf"><label>ESP32 ENDPOINT</label><input id="cfgEsp" placeholder="http://192.168.1.x/data"><div class="mf-hint">Your ESP32 local IP</div></div>
+        <div class="mf"><label>POLL INTERVAL (sec)</label><input id="cfgInt" type="number" value="5" min="1"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--amber);letter-spacing:.08em;margin-bottom:10px">FIREBASE CLOUD</div>
+        <div class="mf"><label>FIREBASE URL</label><input id="cfgFbUrl" placeholder="https://your-project.firebaseio.com"><div class="mf-hint">Realtime Database URL</div></div>
+        <div class="mf"><label>FIREBASE PATH</label><input id="cfgFbPath" value="/crab_monitor/latest" placeholder="/crab_monitor/latest"></div>
+      </div>
+    </div>
+    <div class="mf"><label>ANTHROPIC API KEY (for AI Assistant)</label><input id="cfgApiKey" type="password" placeholder="sk-ant-..."><div class="mf-hint">Get yours at console.anthropic.com</div></div>
+    <div class="mf"><label>CALIBRATION FACTOR (HX711)</label><input id="cfgCalib" type="number" value="420" step="0.1"></div>
+    <div class="mf"><label>TARGET HARVEST WEIGHT (g)</label><input id="cfgTarget" type="number" value="300" step="1"></div>
+    <div class="json-box">
+      <strong style="color:var(--teal)">ESP32 JSON FORMAT:</strong><br>
+      { "ph": 7.8, "salinity": 15.2, "temperature": 27.5,<br>
+      &nbsp;&nbsp;"weights": [182.1, 210.4, 145.0, 230.2, 198.5, 88.3, 175.9, 220.0, 160.4, 245.7] }
+    </div>
+    <div class="modal-btns">
+      <button class="btn-s" onclick="closeConfig()">Cancel</button>
+      <button class="btn-p" onclick="saveConfig()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ALERT POPUP ═════════════════════════════════════════ -->
+<div class="overlay" id="alertOverlay">
+  <div class="alert-modal">
+    <div style="font-size:16px;margin-bottom:8px">🚨 ALERT</div>
+    <div id="alertPopupMsg" style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6"></div>
+    <button class="btn-p" onclick="document.getElementById('alertOverlay').classList.remove('open')">Acknowledge</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// ─── LOGIN SYSTEM ───────────────────────────────────────────────────────────
-function doLogin() {
-  const user = document.getElementById('loginUser').value;
-  const pass = document.getElementById('loginPass').value;
-  if (user === 'admin' && pass === '123456') {
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('mainApp').classList.remove('hidden');
-    localStorage.setItem('crabTrackAuth', 'loggedIn');
-    initSystem();
-  } else {
-    showToast('Invalid username or password', 'danger');
-  }
-}
-function doLogout() {
-  localStorage.removeItem('crabTrackAuth');
-  location.reload();
-}
-if (localStorage.getItem('crabTrackAuth') === 'loggedIn') {
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('mainApp').classList.remove('hidden');
-  initSystem();
-}
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const N = 10;
+const COLORS = ['#00D4AA','#3B82F6','#F59E0B','#A855F7','#EF4444','#06B6D4','#84CC16','#F97316','#EC4899','#8B5CF6'];
 
-// ─── STATE & DATA ───────────────────────────────────────────────────────────
-const COMP_COUNT = 10;
-let state = {
-  ph: 7.8,
-  salinity: 15.2,
-  selectedComp: 0,
-  connected: false,
-  config: { endpoint: '', interval: 5 },
-  charts: {}
+const cfg = {
+  esp: localStorage.getItem('esp_url')||'',
+  fbUrl: localStorage.getItem('fb_url')||'',
+  fbPath: localStorage.getItem('fb_path')||'/crab_monitor/latest',
+  apiKey: localStorage.getItem('api_key')||'',
+  interval: parseInt(localStorage.getItem('esp_int')||'5'),
+  calib: parseFloat(localStorage.getItem('calib')||'420'),
+  target: parseFloat(localStorage.getItem('target')||'300'),
 };
 
-let compartments = Array.from({length: COMP_COUNT}, (_, i) => ({
-  id: `C${String(i+1).padStart(2,'0')}`,
-  name: `Compartment ${i+1}`,
-  weight: 140 + Math.random() * 80,
-  initWeight: 120 + Math.random() * 40,
-  history: generateHistory(140 + Math.random() * 80, 120 + Math.random() * 40),
-  status: 'ok'
-}));
+const thresholds = {
+  phMin:parseFloat(localStorage.getItem('th_phMin')||'7.0'),
+  phMax:parseFloat(localStorage.getItem('th_phMax')||'8.5'),
+  salMin:parseFloat(localStorage.getItem('th_salMin')||'10'),
+  salMax:parseFloat(localStorage.getItem('th_salMax')||'25'),
+  tmpMin:parseFloat(localStorage.getItem('th_tmpMin')||'24'),
+  tmpMax:parseFloat(localStorage.getItem('th_tmpMax')||'30'),
+  wtAlert:parseFloat(localStorage.getItem('th_wtAlert')||'100'),
+  wtWarn:parseFloat(localStorage.getItem('th_wtWarn')||'130'),
+};
 
-function generateHistory(current, init) {
-  const days = 7;
-  return Array.from({length: days}, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (days - 1 - i));
-    const progress = i / (days - 1);
-    const weight = init + (current - init) * progress + (Math.random() * 4 - 2);
+let sensors = { ph:7.8, salinity:15.0, temperature:27.5 };
+let sensorHistory = JSON.parse(localStorage.getItem('sensorHistory')||'[]');
+let compartments = loadCompartments();
+let alertLog = JSON.parse(localStorage.getItem('alertLog')||'[]');
+let pollTimer = null;
+let selectedComp = 0;
+let detChart = null;
+
+// Chart instances
+const charts = {};
+
+function loadCompartments() {
+  const saved = localStorage.getItem('comps_v2');
+  if (saved) return JSON.parse(saved);
+  return Array.from({length:N},(_,i)=>({
+    id:`C${String(i+1).padStart(2,'0')}`,
+    name:`Mud Crab #${i+1}`,
+    weight: 150+Math.random()*100,
+    initWeight: 140+Math.random()*40,
+    history: genHistory(150+Math.random()*100, 140+Math.random()*40),
+    obsLog: [],
+    feedLog: [],
+    status:'ok',
+  }));
+}
+
+function genHistory(cur, init) {
+  const today = new Date();
+  return Array.from({length:14},(_,i)=>{
+    const d = new Date(today); d.setDate(d.getDate()-(13-i));
+    const frac = i/13;
     return {
-      date: date.toISOString().split('T')[0],
-      time: '08:00',
-      weight: Math.max(0, parseFloat(weight.toFixed(1))),
-      source: 'Auto'
+      date:d.toISOString().split('T')[0],
+      time:'08:00',
+      weight:parseFloat((init+(cur-init)*frac+(Math.random()*3-1.5)).toFixed(1)),
+      note: i===0?'Initial':'',
+      source:'demo',
     };
   });
 }
 
-// ─── CLOCK ───────────────────────────────────────────────────────────────────
-function updateClock() {
-  const now = new Date();
-  document.getElementById('topTime').textContent = now.toLocaleString('en-PH', {
-    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true
-  }) + ' PHT';
+function saveComps() { localStorage.setItem('comps_v2',JSON.stringify(compartments)); }
+
+// ═══════════════════════════════════════════════════════════
+// CLOCK & INIT
+// ═══════════════════════════════════════════════════════════
+function tick() {
+  document.getElementById('topTime').textContent =
+    new Date().toLocaleString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' PHT';
 }
-setInterval(updateClock, 1000); updateClock();
+setInterval(tick,1000); tick();
 
-// ─── SIMULATION ──────────────────────────────────────────────────────────────
-function simulateUpdate() {
-  state.ph = parseFloat((state.ph + (Math.random() * 0.4 - 0.2)).toFixed(1));
-  state.ph = Math.max(6.0, Math.min(9.0, state.ph));
-  
-  state.salinity = parseFloat((state.salinity + (Math.random() * 1.2 - 0.6)).toFixed(1));
-  state.salinity = Math.max(5.0, Math.min(35.0, state.salinity));
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function renderSidebar() {
+  // Sensors
+  const sb = document.getElementById('sbSensors');
+  sb.innerHTML = `<div class="sb-sec-label">WATER PARAMETERS</div>` +
+    sensorBlock('pH LEVEL', sensors.ph.toFixed(2), 'pH', ((sensors.ph-6)/3*100).toFixed(0), 'var(--teal)', '6.0','9.0', sensors.ph>=thresholds.phMin&&sensors.ph<=thresholds.phMax?'ok':sensors.ph<thresholds.phMin-0.3||sensors.ph>thresholds.phMax+0.3?'err':'warn', 'ph') +
+    sensorBlock('SALINITY', sensors.salinity.toFixed(1), 'ppt', (sensors.salinity/35*100).toFixed(0), 'var(--blue)', '0','35 ppt', sensors.salinity>=thresholds.salMin&&sensors.salinity<=thresholds.salMax?'ok':sensors.salinity<thresholds.salMin-3||sensors.salinity>thresholds.salMax+3?'err':'warn', 'sal') +
+    sensorBlock('TEMPERATURE', sensors.temperature.toFixed(1), '°C', ((sensors.temperature-20)/20*100).toFixed(0), 'var(--amber)', '20°','40°', sensors.temperature>=thresholds.tmpMin&&sensors.temperature<=thresholds.tmpMax?'ok':sensors.temperature<thresholds.tmpMin-2||sensors.temperature>thresholds.tmpMax+2?'err':'warn', 'tmp');
 
-  compartments.forEach(c => {
-    c.weight = parseFloat((c.weight + (Math.random() * 1.2 - 0.1)).toFixed(1));
-    c.weight = Math.max(c.initWeight, c.weight);
-    c.status = c.weight < 130 ? 'danger' : c.weight < 160 ? 'warning' : 'ok';
-  });
-
-  updateUI();
-}
-setInterval(simulateUpdate, 8000);
-
-// ─── UI RENDERING ───────────────────────────────────────────────────────────
-function updateUI() {
-  updateSensorSidebar();
-  renderOverview();
-  renderSidebarList();
-  updateCharts();
-}
-
-function updateSensorSidebar() {
-  // --- pH ---
-  const phOk = state.ph >= 7.5 && state.ph <= 8.5;
-  const phWarn = (state.ph >= 7.0 && state.ph < 7.5) || (state.ph > 8.5 && state.ph <= 9.0);
-  const phColor = phOk ? 'bg-accent' : phWarn ? 'bg-warning' : 'bg-danger';
-  const phBadgeClass = phOk ? 'bg-accent/10 text-accent border-accent/20' : phWarn ? 'bg-warning/10 text-warning border-warning/20' : 'bg-danger/10 text-danger border-danger/20';
-  const phText = phOk ? 'OPTIMAL' : phWarn ? 'WARNING' : 'ALERT';
-  const phWidth = `${((state.ph - 6)/3)*100}%`;
-
-  // Desktop
-  document.getElementById('sbPh').textContent = state.ph.toFixed(1);
-  document.getElementById('sbPhBar').style.width = phWidth;
-  document.getElementById('sbPhBar').className = `h-full rounded-full transition-all ${phColor}`;
-  document.getElementById('sbPhBadge').textContent = phText;
-  document.getElementById('sbPhBadge').className = `text-[8px] rounded-full px-2 py-0.5 border ${phBadgeClass}`;
-
-  // Mobile ✅ NOW SHOWS ON PHONE
-  document.getElementById('mobPh').textContent = state.ph.toFixed(1);
-  document.getElementById('mobPhBar').style.width = phWidth;
-  document.getElementById('mobPhBar').className = `h-full rounded-full transition-all ${phColor}`;
-  document.getElementById('mobPhBadge').textContent = phText;
-  document.getElementById('mobPhBadge').className = `text-[8px] rounded-full px-2 py-0.5 border ${phBadgeClass}`;
-
-  // --- Salinity ---
-  const salOk = state.salinity >= 10 && state.salinity <= 25;
-  const salColor = salOk ? 'bg-sky-500' : 'bg-danger';
-  const salBadgeClass = salOk ? 'bg-accent/10 text-accent border-accent/20' : 'bg-danger/10 text-danger border-danger/20';
-  const salText = salOk ? 'OPTIMAL' : 'OUT OF RANGE';
-  const salWidth = `${(state.salinity/35)*100}%`;
-
-  // Desktop
-  document.getElementById('sbSal').textContent = state.salinity.toFixed(1);
-  document.getElementById('sbSalBar').style.width = salWidth;
-  document.getElementById('sbSalBar').className = `h-full rounded-full transition-all ${salColor}`;
-  document.getElementById('sbSalBadge').textContent = salText;
-  document.getElementById('sbSalBadge').className = `text-[8px] rounded-full px-2 py-0.5 border ${salBadgeClass}`;
-
-  // Mobile ✅ NOW SHOWS ON PHONE
-  document.getElementById('mobSal').textContent = state.salinity.toFixed(1);
-  document.getElementById('mobSalBar').style.width = salWidth;
-  document.getElementById('mobSalBar').className = `h-full rounded-full transition-all ${salColor}`;
-  document.getElementById('mobSalBadge').textContent = salText;
-  document.getElementById('mobSalBadge').className = `text-[8px] rounded-full px-2 py-0.5 border ${salBadgeClass}`;
+  // Comp list
+  document.getElementById('sbCompList').innerHTML = `<div class="sb-sec-label">COMPARTMENTS</div>` +
+    compartments.map((c,i)=>{
+      const dc = c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)';
+      return `<div class="cl-item${i===selectedComp&&document.getElementById('pageDetail').classList.contains('active')?' active':''}" onclick="showDetail(${i})">
+        <span class="cl-dot" style="background:${dc}"></span>
+        <span class="cl-name">${c.id}</span>
+        <span class="cl-w">${parseFloat(c.weight).toFixed(1)}g</span>
+      </div>`;
+    }).join('');
 }
 
+function sensorBlock(label, val, unit, pct, color, rMin, rMax, status, cls) {
+  const alrt = status==='err';
+  return `<div class="sensor-block ${cls}${alrt?' alert-sensor':''}">
+    <div class="sb-label">${label}</div>
+    <div class="sb-val">${val}<span class="sb-unit">${unit}</span></div>
+    <div class="sb-bar"><div class="sb-bar-fill" style="width:${Math.min(100,Math.max(0,pct))}%;background:${color}"></div></div>
+    <div class="sb-range"><span>${rMin}</span><span>${rMax}</span></div>
+    <span class="sb-badge ${status}">${status==='ok'?'OPTIMAL':status==='warn'?'WARNING':'ALERT'}</span>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.classList.add('active');
+  if(name==='overview') renderOverview();
+  if(name==='analytics') renderAnalytics();
+  if(name==='feeding') renderFeedingPage();
+  if(name==='alerts') renderAlertsPage();
+  if(name==='ai') renderAIPage();
+  if(name==='reports') renderReports();
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════════
 function renderOverview() {
-  const grid = document.getElementById('compGrid');
-  grid.innerHTML = '';
-  
-  compartments.forEach((c, i) => {
-    const gain = (c.weight - c.initWeight).toFixed(1);
-    const statusColor = c.status === 'ok' ? 'bg-accent' : c.status === 'warning' ? 'bg-warning' : 'bg-danger';
-    const statusGlow = c.status === 'ok' ? 'glow' : c.status === 'warning' ? 'glow-amber' : 'glow-red';
-    
-    const card = document.createElement('div');
-    card.className = `bg-secondary border rounded-lg p-3 cursor-pointer transition-all hover:border-accent/40 ${c.status === 'ok' ? 'border-accent/10' : c.status === 'warning' ? 'border-warning/20' : 'border-danger/20'}`;
-    card.onclick = () => showDetail(i);
-    
-    card.innerHTML = `
-      <div class="flex justify-between items-center mb-2">
-        <span class="text-[10px] font-bold text-textMuted">${c.id}</span>
-        <span class="w-2 h-2 rounded-full ${statusColor} ${statusGlow}"></span>
-      </div>
-      <div class="text-xl font-bold mb-1">${c.weight.toFixed(1)}<span class="text-xs text-textMuted">g</span></div>
-      <div class="text-[10px] ${gain >= 0 ? 'text-accent' : 'text-danger'}">${gain >= 0 ? '+' : ''}${gain}g</div>
-    `;
-    grid.appendChild(card);
+  const weights = compartments.map(c=>c.weight);
+  const gains = compartments.map(c=>c.weight-c.initWeight);
+  const avg = weights.reduce((a,b)=>a+b,0)/N;
+  const avgGain = gains.reduce((a,b)=>a+b,0)/N;
+  const alerts = compartments.filter(c=>c.status==='alert').length;
+  const warns = compartments.filter(c=>c.status==='warn').length;
+  const growthRates = compartments.map(c=>{
+    if(c.history.length<2) return 0;
+    const days = (new Date(c.history[c.history.length-1].date)-new Date(c.history[0].date))/(1000*86400)||1;
+    return (c.weight-c.initWeight)/days;
   });
+  const avgRate = growthRates.reduce((a,b)=>a+b,0)/N;
 
-  const avg = compartments.reduce((a,b) => a+b.weight, 0)/COMP_COUNT;
-  const avgGain = compartments.reduce((a,b) => a+(b.weight-b.initWeight), 0)/COMP_COUNT;
-  const alerts = compartments.filter(c => c.status !== 'ok').length;
-  
-  document.getElementById('sumAvg').innerHTML = `${avg.toFixed(1)}<span class="text-xs text-textMuted">g</span>`;
-  document.getElementById('sumGain').innerHTML = `${avgGain >= 0 ? '+' : ''}${avgGain.toFixed(1)}<span class="text-xs text-textMuted">g</span>`;
-  document.getElementById('sumAlerts').textContent = alerts;
-  document.getElementById('sumAlertSub').textContent = alerts === 0 ? 'All Systems Normal' : `${alerts} alert(s) active`;
+  document.getElementById('statRow').innerHTML = [
+    ['TOTAL WEIGHT','c-teal', (weights.reduce((a,b)=>a+b,0)/1000).toFixed(2),'kg','All 10 compartments'],
+    ['AVG WEIGHT','c-blue', avg.toFixed(1),'g','Per compartment'],
+    ['AVG GAIN','c-teal', (avgGain>=0?'+':'')+avgGain.toFixed(1),'g','From initial'],
+    ['GROWTH RATE','c-purple', avgRate.toFixed(2),'g/day','Average'],
+    ['ALERTS','c-red', alerts+warns,'',`${alerts} alert${alerts!==1?'s':''}, ${warns} warn`],
+  ].map(([l,c,v,u,s])=>`<div class="stat-card ${c}"><div class="stat-lbl">${l}</div><div class="stat-val">${v}<span class="stat-unit">${u}</span></div><div class="stat-sub">${s}</div></div>`).join('');
+
+  // Harvest prediction row
+  document.getElementById('harvestRow').innerHTML = compartments.map(c=>{
+    const rate = c.history.length>2?(c.weight-c.history[Math.max(0,c.history.length-8)].weight)/Math.min(7,c.history.length-1):0.5;
+    const rem = rate>0?(cfg.target-c.weight)/rate:999;
+    const pct = Math.min(100,(c.weight/cfg.target)*100);
+    const ready = c.weight>=cfg.target;
+    return `<div class="hv-card">
+      <div class="hv-id">${c.id}</div>
+      <div class="hv-days ${ready?'hv-ready':''}">${ready?'✓ READY':Math.round(rem)}</div>
+      <div class="hv-lbl">${ready?'harvest now':'days left'}</div>
+      <div class="hv-bar"><div class="hv-bar-fill" style="width:${pct}%;background:${ready?'var(--teal)':'var(--purple)'}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Comp grid
+  document.getElementById('compGrid').innerHTML = compartments.map((c,i)=>{
+    const fp = Math.min(95,Math.max(5,(c.weight/cfg.target)*100));
+    const gain = c.weight-c.initWeight;
+    const wc = c.status==='ok'?'tw-ok':c.status==='warn'?'tw-warn':'tw-alert';
+    const cc = c.status==='warn'?' warn-card':c.status==='alert'?' alert-card':'';
+    return `<div class="comp-card${cc}${i===selectedComp?' sel-card':''}" onclick="showDetail(${i})">
+      <div class="cc-hdr"><span class="cc-id">${c.id}</span><span class="cc-dot" style="background:${c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)'}"></span></div>
+      <div class="tank"><div class="tank-water ${wc}" style="height:${fp}%"></div><div class="tank-lbl">${parseFloat(c.weight).toFixed(1)}g</div></div>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-gain" style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g total</div>
+    </div>`;
+  }).join('');
+
+  renderSidebar();
 }
 
-function renderSidebarList() {
-  const list = document.getElementById('sidebarList');
-  list.innerHTML = compartments.map((c,i) => `
-    <div class="p-2 rounded text-xs cursor-pointer transition ${i === state.selectedComp ? 'bg-accent/10 border-l-2 border-accent text-accent' : 'hover:bg-neutral/40'}" onclick="showDetail(${i})">
-      <div class="flex justify-between items-center">
-        <span>${c.id}</span>
-        <span class="text-textMuted">${c.weight.toFixed(1)}g</span>
-      </div>
-    </div>
-  `).join('');
-}
-
+// ═══════════════════════════════════════════════════════════
+// DETAIL
+// ═══════════════════════════════════════════════════════════
 function showDetail(i) {
-  state.selectedComp = i;
-  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-  document.getElementById('pageDetail').classList.remove('hidden');
-  
-  const c = compartments[i];
-  const gain = c.weight - c.initWeight;
-  const gainPct = ((gain / c.initWeight)*100).toFixed(1);
-  
-  document.getElementById('detTitle').textContent = `${c.id} · ${c.name}`;
-  document.getElementById('detWeight').innerHTML = `${c.weight.toFixed(1)} <span class="text-xs text-textMuted">g</span>`;
-  document.getElementById('detInit').innerHTML = `${c.initWeight.toFixed(1)} <span class="text-xs text-textMuted">g</span>`;
-  document.getElementById('detGain').innerHTML = `${gain >= 0 ? '+' : ''}${gain.toFixed(1)} <span class="text-xs text-textMuted">g</span>`;
-  document.getElementById('detGainPct').textContent = `${gainPct}% growth`;
-  
+  selectedComp = i;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pageDetail').classList.add('active');
+  document.querySelectorAll('.sb-nav-item').forEach(n=>n.classList.remove('active'));
+  renderDetail();
+  renderSidebar();
+}
+
+function renderDetail() {
+  const c = compartments[selectedComp];
+  document.getElementById('detTitle').textContent = `${c.id} — ${c.name}`;
+  document.getElementById('detSub').textContent = `Compartment ${selectedComp+1} of ${N} · HX711 Load Cell · ESP32`;
+
+  const gain = c.weight-c.initWeight;
+  const rate = c.history.length>2?(c.weight-c.history[Math.max(0,c.history.length-8)].weight)/Math.min(7,c.history.length-1):0;
+  const daysToHarvest = rate>0?Math.round((cfg.target-c.weight)/rate):null;
+
+  document.getElementById('detMetrics').innerHTML = [
+    ['CURRENT WEIGHT',parseFloat(c.weight).toFixed(1),'g',c.weight>=cfg.target?'✓ Harvest ready':'','var(--teal)'],
+    ['INITIAL WEIGHT',parseFloat(c.initWeight).toFixed(1),'g','Baseline','var(--text)'],
+    ['TOTAL GAIN',(gain>=0?'+':'')+gain.toFixed(1),'g',((gain/c.initWeight*100).toFixed(1))+'% growth',gain>=0?'var(--teal)':'var(--red)'],
+    ['HARVEST ETA',daysToHarvest!==null?(c.weight>=cfg.target?'READY':daysToHarvest):'N/A',daysToHarvest&&c.weight<cfg.target?' days':'','Target: '+cfg.target+'g','var(--purple)'],
+  ].map(([l,v,u,s,col])=>`<div class="met-card"><div class="met-lbl">${l}</div><div class="met-val" style="color:${col}">${v}<span class="met-unit">${u}</span></div><div class="met-sub">${s}</div></div>`).join('');
+
+  // Weight chart
   renderDetailChart();
-  renderHistoryTable();
-}
+  renderWeightLog();
+  renderObsLog();
+  renderFeedLogDet();
 
-function showOverview() {
-  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-  document.getElementById('pageOverview').classList.remove('active', 'hidden').classList.add('active');
-}
+  // Set date/time defaults
+  const now = new Date();
+  ['inD','obsD','feedD'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=now.toISOString().split('T')[0]; });
+  const t = now.toTimeString().slice(0,5);
+  const ti = document.getElementById('inT'); if(ti) ti.value=t;
 
-// ─── CHARTS ─────────────────────────────────────────────────────────────────
-function initCharts() {
-  state.charts.water = new Chart(document.getElementById('waterChart'), {
-    type: 'line',
-    data: { labels: Array(7).fill(''), datasets: [{ label: 'pH', data: [], borderColor: '#00D4AA', tension: 0.4 }, { label: 'Salinity', data: [], borderColor: '#3B82F6', tension: 0.4 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8BAFC4' } } }, scales: { x: { ticks: { color: '#4A7090' } }, y: { ticks: { color: '#4A7090' } } } }
-  });
-
-  state.charts.weight = new Chart(document.getElementById('weightChart'), {
-    type: 'line',
-    data: { labels: Array(7).fill(''), datasets: [{ label: 'Avg Weight', data: [], borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.4 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8BAFC4' } } }, scales: { x: { ticks: { color: '#4A7090' } }, y: { ticks: { color: '#4A7090' } } } }
-  });
-
-  state.charts.detail = new Chart(document.getElementById('detailChart'), {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Weight', data: [], borderColor: '#00D4AA', backgroundColor: 'rgba(0,212,170,0.1)', fill: true, tension: 0.4 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#4A7090' } }, y: { ticks: { color: '#4A7090' }, beginAtZero: false } } }
-  });
-}
-
-function updateCharts() {
-  const labels = Array.from({length:7}, (_,i) => `Day ${i+1}`);
-  
-  state.charts.water.data.labels = labels;
-  state.charts.water.data.datasets[0].data = Array.from({length:7}, () => 7.2 + Math.random()*1.3);
-  state.charts.water.data.datasets[1].data = Array.from({length:7}, () => 10 + Math.random()*14);
-  state.charts.water.update();
-
-  state.charts.weight.data.labels = labels;
-  state.charts.weight.data.datasets[0].data = Array.from({length:7}, (_,i) => 140 + i*7 + Math.random()*5);
-  state.charts.weight.update();
+  // AI quick prompts for detail
+  document.getElementById('detAiPrompts').innerHTML = [
+    `Why is ${c.id} growing slowly?`,
+    `Health assessment for ${c.id}`,
+    `Feeding recommendation for ${c.id}`,
+    `Is ${c.id} ready to harvest?`,
+  ].map(p=>`<span class="qp" onclick="askDetAI('${p}')">${p}</span>`).join('');
 }
 
 function renderDetailChart() {
-  const history = compartments[state.selectedComp].history;
-  state.charts.detail.data.labels = history.map(h => h.date.slice(5));
-  state.charts.detail.data.datasets[0].data = history.map(h => h.weight);
-  state.charts.detail.update();
+  const c = compartments[selectedComp];
+  const ctx = document.getElementById('detChart').getContext('2d');
+  if(detChart) detChart.destroy();
+  detChart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:c.history.map(h=>h.date.slice(5)),
+      datasets:[{
+        label:'Weight (g)',
+        data:c.history.map(h=>h.weight),
+        borderColor:'#00D4AA',backgroundColor:'rgba(0,212,170,0.07)',
+        fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:'#00D4AA',
+        pointBorderColor:'#0A1628',pointBorderWidth:2,borderWidth:2,
+      },{
+        label:'Target',
+        data:c.history.map(()=>cfg.target),
+        borderColor:'rgba(168,85,247,0.5)',borderDash:[5,5],
+        borderWidth:1,pointRadius:0,fill:false,
+      }]
+    },
+    options:chartOpts('g')
+  });
 }
 
-function renderHistoryTable() {
-  const tbody = document.getElementById('historyBody');
-  const history = compartments[state.selectedComp].history.slice().reverse();
-  tbody.innerHTML = history.map((h,i,arr) => {
-    const prev = arr[i+1];
-    const diff = prev ? (h.weight - prev.weight).toFixed(1) : '';
-    return `
-    <tr class="border-b border-accent/5">
-      <td class="py-2 px-1">${h.date}</td>
-      <td class="py-2 px-1">${h.time}</td>
-      <td class="py-2 px-1 font-mono">${h.weight}g</td>
-      <td class="py-2 px-1 ${diff >=0 ? 'text-accent' : 'text-danger'}">${diff ? (diff >=0 ? '+' : '') + diff : '—'}</td>
-      <td class="py-2 px-1 text-textMuted">${h.source}</td>
+function chartOpts(unit='') {
+  return {
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#4A7090',font:{size:10,family:'Courier New'},boxWidth:12}},
+      tooltip:{backgroundColor:'#0F1E38',borderColor:'rgba(0,212,170,.3)',borderWidth:1,titleColor:'#8BAFC4',bodyColor:'#E8F4F1'}},
+    scales:{
+      x:{ticks:{color:'#4A7090',font:{size:10,family:'Courier New'},maxRotation:30},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{ticks:{color:'#4A7090',font:{size:10,family:'Courier New'},callback:v=>v+unit},grid:{color:'rgba(255,255,255,.04)'}},
+    }
+  };
+}
+
+function renderWeightLog() {
+  const c = compartments[selectedComp];
+  const sorted = [...c.history].reverse();
+  document.getElementById('weightLog').innerHTML = sorted.map((h,i)=>{
+    const prev = sorted[i+1];
+    const diff = prev?h.weight-prev.weight:null;
+    return `<tr><td class="td-m">${h.date}</td><td class="td-m">${h.time||'—'}</td>
+      <td class="td-m">${parseFloat(h.weight).toFixed(1)}g</td>
+      <td>${diff!==null?`<span style="color:${diff>=0?'var(--teal)':'var(--red)'}">${diff>=0?'+':''}${diff.toFixed(1)}g</span>`:'—'}</td>
+      <td style="color:var(--text3)">${h.note||''}</td>
+      <td><button onclick="delWeight(${c.history.length-1-i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px">✕</button></td></tr>`;
+  }).join('')||'<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No entries</td></tr>';
+}
+
+function renderObsLog() {
+  const c = compartments[selectedComp];
+  document.getElementById('obsLog').innerHTML = (c.obsLog||[]).slice().reverse().map((o,i)=>
+    `<tr><td class="td-m">${o.date}</td><td style="color:var(--teal)">${o.type}</td><td style="color:var(--text2)">${o.note}</td>
+    <td><button onclick="delObs(${(c.obsLog.length-1-i)})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px">✕</button></td></tr>`
+  ).join('')||'<tr><td colspan="4" style="color:var(--text3);text-align:center;padding:16px">No observations</td></tr>';
+}
+
+function renderFeedLogDet() {
+  const c = compartments[selectedComp];
+  document.getElementById('feedLog').innerHTML = (c.feedLog||[]).slice().reverse().map((f,i)=>
+    `<tr><td class="td-m">${f.date}</td><td style="color:var(--amber)">${f.type}</td><td class="td-m">${f.amount}g</td><td style="color:var(--text3)">${f.note||''}</td>
+    <td><button onclick="delFeed(${(c.feedLog.length-1-i)})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px">✕</button></td></tr>`
+  ).join('')||'<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No feeding records</td></tr>';
+}
+
+function prevComp() { selectedComp=(selectedComp-1+N)%N; renderDetail(); renderSidebar(); }
+function nextComp() { selectedComp=(selectedComp+1)%N; renderDetail(); renderSidebar(); }
+
+function switchTab(el, id) {
+  el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// Logging
+function logWeight() {
+  const w=parseFloat(document.getElementById('inW').value);
+  if(!w||isNaN(w)) { showToast('Enter a valid weight','warn'); return; }
+  const c=compartments[selectedComp];
+  const entry={date:document.getElementById('inD').value,time:document.getElementById('inT').value,weight:w,note:document.getElementById('inN').value,source:'manual'};
+  c.history.push(entry); c.history.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  c.weight=w; updateStatus(c); saveComps();
+  document.getElementById('inW').value=''; document.getElementById('inN').value='';
+  renderDetail(); renderSidebar();
+  showToast(`Logged ${w}g for ${c.id}`);
+}
+
+function logObs() {
+  const note=document.getElementById('obsNote').value.trim();
+  if(!note) { showToast('Enter a note','warn'); return; }
+  const c=compartments[selectedComp];
+  if(!c.obsLog) c.obsLog=[];
+  c.obsLog.push({date:document.getElementById('obsD').value,type:document.getElementById('obsType').value,note});
+  saveComps(); document.getElementById('obsNote').value='';
+  renderObsLog(); showToast('Observation logged');
+}
+
+function logFeed() {
+  const amt=parseFloat(document.getElementById('feedAmt').value);
+  if(!amt||isNaN(amt)) { showToast('Enter amount','warn'); return; }
+  const c=compartments[selectedComp];
+  if(!c.feedLog) c.feedLog=[];
+  c.feedLog.push({date:document.getElementById('feedD').value,type:document.getElementById('feedType').value,amount:amt,note:document.getElementById('feedNote').value});
+  saveComps(); document.getElementById('feedAmt').value=''; document.getElementById('feedNote').value='';
+  renderFeedLogDet(); showPage('feeding');
+  showToast(`Feed logged for ${c.id}`);
+}
+
+function delWeight(i) { compartments[selectedComp].history.splice(i,1); saveComps(); renderDetail(); }
+function delObs(i) { compartments[selectedComp].obsLog.splice(i,1); saveComps(); renderObsLog(); }
+function delFeed(i) { compartments[selectedComp].feedLog.splice(i,1); saveComps(); renderFeedLogDet(); }
+
+function updateStatus(c) {
+  c.status = c.weight < thresholds.wtAlert ? 'alert' : c.weight < thresholds.wtWarn ? 'warn' : 'ok';
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════════════════════
+function renderAnalytics() {
+  const days = parseInt(document.getElementById('analyticsDays').value);
+  const today = new Date();
+  const labels = Array.from({length:days},(_,i)=>{ const d=new Date(today); d.setDate(d.getDate()-(days-1-i)); return d.toISOString().split('T')[0].slice(5); });
+
+  // All weight trends
+  const wDs = compartments.map((c,i)=>({
+    label:c.id, data:labels.map((_,j)=>{
+      const d=new Date(today); d.setDate(d.getDate()-(days-1-j));
+      const ds=d.toISOString().split('T')[0];
+      const h=c.history.filter(x=>x.date<=ds);
+      return h.length?h[h.length-1].weight:null;
+    }),
+    borderColor:COLORS[i],backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,
+  }));
+  mkChart('chartAllWeight',{type:'line',data:{labels,datasets:wDs},options:chartOpts('g')});
+
+  // Growth rates
+  const rates = compartments.map(c=>{
+    if(c.history.length<2) return 0;
+    const recent=c.history.filter(h=>{const d=new Date(h.date);const cutoff=new Date(today);cutoff.setDate(cutoff.getDate()-days);return d>=cutoff;});
+    if(recent.length<2) return 0;
+    return parseFloat(((recent[recent.length-1].weight-recent[0].weight)/Math.max(1,recent.length-1)).toFixed(2));
+  });
+  mkChart('chartGrowth',{type:'bar',data:{labels:compartments.map(c=>c.id),datasets:[{label:'g/day',data:rates,backgroundColor:rates.map(r=>r>0?'rgba(0,212,170,0.7)':'rgba(239,68,68,0.7)'),borderRadius:4}]},options:chartOpts('g/d')});
+
+  // pH history
+  const phH=sensorHistory.slice(-days*4);
+  mkChart('chartPh',{type:'line',data:{
+    labels:phH.map(h=>h.time.slice(5,-3)),
+    datasets:[{label:'pH',data:phH.map(h=>h.ph),borderColor:'#00D4AA',backgroundColor:'rgba(0,212,170,.06)',fill:true,tension:.3,pointRadius:0,borderWidth:1.5},
+      {label:'Min',data:phH.map(()=>thresholds.phMin),borderColor:'rgba(245,158,11,.4)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},
+      {label:'Max',data:phH.map(()=>thresholds.phMax),borderColor:'rgba(239,68,68,.4)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}]
+  },options:chartOpts('')});
+
+  // Sal + Temp
+  mkChart('chartSalTemp',{type:'line',data:{
+    labels:phH.map(h=>h.time.slice(5,-3)),
+    datasets:[
+      {label:'Salinity (ppt)',data:phH.map(h=>h.sal),borderColor:'#3B82F6',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y'},
+      {label:'Temp (°C)',data:phH.map(h=>h.tmp),borderColor:'#F59E0B',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y1'},
+    ]
+  },options:{...chartOpts(),...{scales:{x:{ticks:{color:'#4A7090',font:{size:10,family:'Courier New'},maxRotation:30},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#3B82F6',font:{size:10,family:'Courier New'}},grid:{color:'rgba(255,255,255,.04)'}},y1:{position:'right',ticks:{color:'#F59E0B',font:{size:10,family:'Courier New'}},grid:{drawOnChartArea:false}}}}}});
+
+  // Harvest table
+  document.getElementById('harvestTable').innerHTML = `<table class="tbl"><thead><tr><th>COMPARTMENT</th><th>CURRENT</th><th>INITIAL</th><th>GAIN</th><th>RATE (g/day)</th><th>DAYS TO HARVEST</th><th>EST. DATE</th></tr></thead><tbody>` +
+  compartments.map(c=>{
+    const gain=c.weight-c.initWeight;
+    const recent=c.history.filter(h=>{const d=new Date(h.date);const cut=new Date();cut.setDate(cut.getDate()-7);return d>=cut;});
+    const rate=recent.length>1?(recent[recent.length-1].weight-recent[0].weight)/Math.max(1,recent.length-1):0;
+    const rem=rate>0?(cfg.target-c.weight)/rate:null;
+    const eta=rem!==null&&rem>0?new Date(Date.now()+rem*86400000).toLocaleDateString('en-PH'):'—';
+    const ready=c.weight>=cfg.target;
+    return `<tr>
+      <td class="td-m">${c.id} ${c.name}</td>
+      <td class="td-m">${c.weight.toFixed(1)}g</td>
+      <td>${c.initWeight.toFixed(1)}g</td>
+      <td style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g</td>
+      <td class="td-m">${rate.toFixed(2)}</td>
+      <td style="color:${ready?'var(--teal)':'var(--purple)'}">${ready?'✓ READY':(rem!==null&&rem>0?Math.ceil(rem)+' days':'—')}</td>
+      <td style="color:var(--text3)">${ready?'Now':eta}</td>
     </tr>`;
-  }).join('');
+  }).join('')+'</tbody></table>';
 }
 
-// ─── UTILITIES ──────────────────────────────────────────────────────────────
-function openConfig() { document.getElementById('configModal').classList.remove('hidden'); document.getElementById('configModal').classList.add('flex'); }
-function closeConfig() { document.getElementById('configModal').classList.add('hidden'); }
-function saveConfig() { state.config.endpoint = document.getElementById('cfgEndpoint').value.trim(); closeConfig(); showToast('Configuration saved', 'ok'); }
-function showToast(msg,type='') { const t=document.getElementById('toast');t.textContent=msg;t.className=`showToast fixed bottom-4 right-4 bg-secondary border rounded-lg p-3 text-sm max-w-xs transition-opacity duration-300 opacity-100 pointer-events-auto ${type==='ok'?'border-accent/30':type==='warn'?'border-warning/30':'border-danger/30'}`;setTimeout(()=>t.style.opacity=0,3000); }
+function mkChart(id, cfg_) {
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),cfg_);
+}
 
+// ═══════════════════════════════════════════════════════════
+// FEEDING PAGE
+// ═══════════════════════════════════════════════════════════
+function renderFeedingPage() {
+  const today = new Date();
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  let weekHtml='';
+  for(let i=6;i>=0;i--) {
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    const dayFeeds=compartments.filter(c=>(c.feedLog||[]).some(f=>f.date===ds)).length;
+    const cls=dayFeeds===N?'fed':dayFeeds>0?'partial':i===0?'upcoming':'missed';
+    weekHtml+=`<div class="feed-day"><div class="feed-day-lbl">${days[d.getDay()]}</div>
+      ${Array.from({length:Math.min(N,10)},(_,j)=>`<div class="feed-dot ${j<dayFeeds?cls:'upcoming'}"></div>`).join('')}
+      <div style="font-size:9px;color:var(--text3);margin-top:4px">${dayFeeds}/${N}</div>
+    </div>`;
+  }
+  document.getElementById('feedWeek').innerHTML=weekHtml;
+
+  // Bulk form date
+  document.getElementById('bFeedD').value=today.toISOString().split('T')[0];
+
+  // All feeds table
+  const allFeeds=[];
+  compartments.forEach(c=>(c.feedLog||[]).forEach(f=>allFeeds.push({...f,comp:c.id,name:c.name})));
+  allFeeds.sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('allFeedLog').innerHTML=allFeeds.slice(0,30).map(f=>
+    `<tr><td class="td-m">${f.date}</td><td style="color:var(--teal)">${f.comp}</td><td style="color:var(--amber)">${f.type}</td><td class="td-m">${f.amount}g</td><td style="color:var(--text3)">${f.note||''}</td></tr>`
+  ).join('')||'<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No feeding records yet</td></tr>';
+}
+
+function bulkFeed() {
+  const amt=parseFloat(document.getElementById('bFeedAmt').value);
+  if(!amt||isNaN(amt)) { showToast('Enter amount','warn'); return; }
+  const date=document.getElementById('bFeedD').value;
+  const type=document.getElementById('bFeedType').value;
+  const note=document.getElementById('bFeedNote').value;
+  compartments.forEach(c=>{ if(!c.feedLog) c.feedLog=[]; c.feedLog.push({date,type,amount:amt,note}); });
+  saveComps(); renderFeedingPage(); showToast(`Feeding logged for all ${N} compartments`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════════
+function checkAlerts() {
+  const triggered=[];
+  const {ph,salinity:sal,temperature:tmp}=sensors;
+  if(ph<thresholds.phMin||ph>thresholds.phMax) triggered.push({sensor:'pH',val:ph.toFixed(2),th:`${thresholds.phMin}–${thresholds.phMax}`,level:ph<thresholds.phMin-0.5||ph>thresholds.phMax+0.5?'alert':'warn'});
+  if(sal<thresholds.salMin||sal>thresholds.salMax) triggered.push({sensor:'Salinity',val:sal.toFixed(1)+'ppt',th:`${thresholds.salMin}–${thresholds.salMax}ppt`,level:'alert'});
+  if(tmp<thresholds.tmpMin||tmp>thresholds.tmpMax) triggered.push({sensor:'Temperature',val:tmp.toFixed(1)+'°C',th:`${thresholds.tmpMin}–${thresholds.tmpMax}°C`,level:'warn'});
+  compartments.forEach(c=>{
+    if(c.weight<thresholds.wtAlert) triggered.push({sensor:c.id+' Weight',val:c.weight.toFixed(1)+'g',th:'<'+thresholds.wtAlert+'g',level:'alert'});
+    else if(c.weight<thresholds.wtWarn) triggered.push({sensor:c.id+' Weight',val:c.weight.toFixed(1)+'g',th:'<'+thresholds.wtWarn+'g',level:'warn'});
+  });
+  const bellDot=document.getElementById('bellDot');
+  bellDot.className='bell-dot'+(triggered.length?' show':'');
+  if(triggered.length&&document.getElementById('soundAlerts').checked) {
+    try{const ctx=new AudioContext();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);o.start();o.stop(ctx.currentTime+0.3);}catch(e){}
+  }
+  const now=new Date().toLocaleString();
+  triggered.forEach(a=>{ if(!alertLog.find(x=>x.sensor===a.sensor&&x.time===now)) alertLog.unshift({...a,time:now}); });
+  alertLog=alertLog.slice(0,50);
+  localStorage.setItem('alertLog',JSON.stringify(alertLog));
+  return triggered;
+}
+
+function renderAlertsPage() {
+  const active=checkAlerts();
+  const el=document.getElementById('activeAlerts');
+  el.innerHTML=active.length?active.map(a=>`
+    <div class="alert-item ${a.level}-alert">
+      <div class="ai-icon" style="background:${a.level==='alert'?'var(--red-dim)':'var(--amber-dim)'}">
+        ${a.level==='alert'?'🚨':'⚠️'}
+      </div>
+      <div><div class="ai-title">${a.sensor}</div><div class="ai-sub">Reading: ${a.val} | Threshold: ${a.th}</div></div>
+      <div class="ai-time">${new Date().toLocaleTimeString()}</div>
+    </div>`).join('') : '<div style="color:var(--teal);font-size:12px;padding:16px;text-align:center">✓ All parameters within thresholds</div>';
+
+  document.getElementById('thPhMin').value=thresholds.phMin;
+  document.getElementById('thPhMax').value=thresholds.phMax;
+  document.getElementById('thSalMin').value=thresholds.salMin;
+  document.getElementById('thSalMax').value=thresholds.salMax;
+  document.getElementById('thTmpMin').value=thresholds.tmpMin;
+  document.getElementById('thTmpMax').value=thresholds.tmpMax;
+  document.getElementById('thWtAlert').value=thresholds.wtAlert;
+  document.getElementById('thWtWarn').value=thresholds.wtWarn;
+
+  document.getElementById('alertHistory').innerHTML=alertLog.slice(0,20).map(a=>
+    `<tr><td class="td-m" style="font-size:10px">${a.time}</td><td style="color:var(--text2)">${a.sensor}</td><td class="td-m">${a.val}</td><td style="color:var(--text3)">${a.th}</td>
+    <td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:${a.level==='alert'?'var(--red-dim)':'var(--amber-dim)'};color:${a.level==='alert'?'var(--red)':'var(--amber)'}">${a.level.toUpperCase()}</span></td></tr>`
+  ).join('')||'<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No alert history</td></tr>';
+}
+
+function saveThresholds() {
+  ['phMin','phMax','salMin','salMax','tmpMin','tmpMax','wtAlert','wtWarn'].forEach(k=>{
+    const ids={'phMin':'thPhMin','phMax':'thPhMax','salMin':'thSalMin','salMax':'thSalMax','tmpMin':'thTmpMin','tmpMax':'thTmpMax','wtAlert':'thWtAlert','wtWarn':'thWtWarn'};
+    thresholds[k]=parseFloat(document.getElementById(ids[k]).value);
+    localStorage.setItem('th_'+k,thresholds[k]);
+  });
+  compartments.forEach(c=>updateStatus(c)); saveComps();
+  showToast('Thresholds saved','ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI ASSISTANT
+// ═══════════════════════════════════════════════════════════
+function renderAIPage() {
+  const prompts=[
+    'Overall system health check',
+    'Which crab is growing the fastest?',
+    'Which crab needs attention?',
+    'Optimal feeding schedule recommendation',
+    'Water quality analysis',
+    'Harvest readiness report',
+  ];
+  document.getElementById('globalAiPrompts').innerHTML=prompts.map(p=>`<span class="qp" onclick="askGlobalAI('${p}')">${p}</span>`).join('');
+  if(!document.getElementById('globalAiChat').innerHTML) {
+    appendMsg('globalAiChat','ai','Hello! I\'m your AI crab health assistant powered by Claude. I have access to all your sensor readings and compartment data. Ask me anything about your crab fattening system!');
+  }
+}
+
+function buildSystemContext() {
+  const weights=compartments.map(c=>c.weight);
+  const gains=compartments.map(c=>c.weight-c.initWeight);
+  const rates=compartments.map(c=>{
+    const r=c.history.filter(h=>{const d=new Date(h.date);const cut=new Date();cut.setDate(cut.getDate()-7);return d>=cut;});
+    return r.length>1?((r[r.length-1].weight-r[0].weight)/Math.max(1,r.length-1)).toFixed(2):0;
+  });
+  return `You are an expert AI assistant for a mud crab (Scylla serrata) fattening system in the Philippines. You have access to live sensor data and should give practical, specific advice.
+
+CURRENT SENSOR READINGS:
+- pH: ${sensors.ph.toFixed(2)} (optimal 7.5–8.5)
+- Salinity: ${sensors.salinity.toFixed(1)} ppt (optimal 10–25 ppt)  
+- Water Temperature: ${sensors.temperature.toFixed(1)}°C (optimal 25–30°C)
+
+THRESHOLDS: pH ${thresholds.phMin}–${thresholds.phMax}, Salinity ${thresholds.salMin}–${thresholds.salMax}ppt, Temp ${thresholds.tmpMin}–${thresholds.tmpMax}°C
+
+COMPARTMENTS (${N} total, target harvest weight: ${cfg.target}g):
+${compartments.map((c,i)=>`- ${c.id} (${c.name}): ${c.weight.toFixed(1)}g current, ${c.initWeight.toFixed(1)}g initial, +${gains[i].toFixed(1)}g gain, ${rates[i]}g/day rate, status: ${c.status}`).join('\n')}
+
+ALERTS ACTIVE: ${checkAlerts().map(a=>a.sensor+' '+a.val).join(', ')||'none'}
+
+Give concise, practical advice. Use bullet points for lists. Mention specific compartment IDs when relevant.`;
+}
+
+async function callClaude(systemPrompt, messages) {
+  if(!cfg.apiKey) {
+    return '⚠️ No API key configured. Please go to ⚙ Config and enter your Anthropic API key to enable AI features.';
+  }
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:systemPrompt,messages})
+    });
+    const data=await res.json();
+    if(data.error) return '⚠️ API Error: '+data.error.message;
+    return data.content[0].text;
+  } catch(e) { return '⚠️ Connection error: '+e.message; }
+}
+
+const globalChatHistory=[];
+async function sendGlobalAI() {
+  const input=document.getElementById('globalAiInput');
+  const text=input.value.trim(); if(!text) return;
+  input.value='';
+  appendMsg('globalAiChat','user',text);
+  globalChatHistory.push({role:'user',content:text});
+  const typing=appendMsg('globalAiChat','ai','Analyzing your crab data...',true);
+  const reply=await callClaude(buildSystemContext(),globalChatHistory);
+  typing.remove();
+  appendMsg('globalAiChat','ai',reply);
+  globalChatHistory.push({role:'assistant',content:reply});
+}
+async function askGlobalAI(p) { document.getElementById('globalAiInput').value=p; await sendGlobalAI(); }
+
+const detChatHistory=[];
+async function sendDetAI() {
+  const input=document.getElementById('detAiInput');
+  const text=input.value.trim(); if(!text) return;
+  input.value='';
+  const c=compartments[selectedComp];
+  appendMsg('detAiChat','user',text);
+  detChatHistory.push({role:'user',content:text});
+  const typing=appendMsg('detAiChat','ai','Analyzing '+c.id+'...',true);
+  const compContext=buildSystemContext()+`\n\nFOCUS ON: ${c.id} (${c.name})\nRecent weight history: ${c.history.slice(-7).map(h=>h.date.slice(5)+':'+h.weight+'g').join(', ')}\nObservations: ${(c.obsLog||[]).slice(-3).map(o=>o.date+' '+o.type+': '+o.note).join('; ')||'none'}\nFeeding: ${(c.feedLog||[]).slice(-5).map(f=>f.date+' '+f.type+' '+f.amount+'g').join(', ')||'none'}`;
+  const reply=await callClaude(compContext,detChatHistory);
+  typing.remove();
+  appendMsg('detAiChat','ai',reply);
+  detChatHistory.push({role:'assistant',content:reply});
+}
+async function askDetAI(p) { document.getElementById('detAiInput').value=p; await sendDetAI(); }
+
+function appendMsg(containerId, role, text, isTyping=false) {
+  const el=document.getElementById(containerId);
+  const div=document.createElement('div');
+  div.className='msg '+role+(isTyping?' typing':'');
+  if(role==='ai') div.innerHTML=`<div class="msg-lbl">CARL</div>${text.replace(/\n/g,'<br>')}`;
+  else div.textContent=text;
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+  return div;
+}
+
+// ═══════════════════════════════════════════════════════════
+// REPORTS
+// ═══════════════════════════════════════════════════════════
+function renderReports() {
+  const today=new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+  const weights=compartments.map(c=>c.weight);
+  const gains=compartments.map(c=>c.weight-c.initWeight);
+  const ready=compartments.filter(c=>c.weight>=cfg.target).length;
+  document.getElementById('reportContent').innerHTML=`
+  <div class="panel report-section">
+    <div class="panel-title">SYSTEM SUMMARY — ${today}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      ${[['Total Compartments','10'],['Ready to Harvest',ready+' crabs'],['Avg Weight',(weights.reduce((a,b)=>a+b,0)/N).toFixed(1)+'g'],
+         ['Total Biomass',(weights.reduce((a,b)=>a+b,0)/1000).toFixed(2)+'kg'],['Avg Gain',(gains.reduce((a,b)=>a+b,0)/N).toFixed(1)+'g'],
+         ['pH / Salinity / Temp',sensors.ph.toFixed(1)+' / '+sensors.salinity.toFixed(1)+'ppt / '+sensors.temperature.toFixed(1)+'°C']
+      ].map(([l,v])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px"><div style="font-size:9px;color:var(--text3)">${l}</div><div style="font-size:16px;font-weight:bold;margin-top:4px">${v}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="panel report-section">
+    <div class="panel-title">COMPARTMENT STATUS TABLE</div>
+    <table class="tbl"><thead><tr><th>ID</th><th>NAME</th><th>CURRENT</th><th>INITIAL</th><th>GAIN</th><th>STATUS</th><th>HARVEST</th></tr></thead><tbody>
+    ${compartments.map(c=>{
+      const gain=c.weight-c.initWeight;
+      const rate=c.history.length>2?(c.weight-c.history[Math.max(0,c.history.length-8)].weight)/Math.min(7,c.history.length-1):0;
+      const rem=rate>0?Math.ceil((cfg.target-c.weight)/rate):null;
+      return `<tr>
+        <td class="td-m">${c.id}</td><td>${c.name}</td>
+        <td class="td-m">${c.weight.toFixed(1)}g</td><td>${c.initWeight.toFixed(1)}g</td>
+        <td style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g</td>
+        <td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:${c.status==='ok'?'var(--teal-dim)':c.status==='warn'?'var(--amber-dim)':'var(--red-dim)'};color:${c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)'}">${c.status.toUpperCase()}</span></td>
+        <td style="color:var(--purple)">${c.weight>=cfg.target?'✓ READY':rem?rem+' days':'—'}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ESP32 / FIREBASE POLLING
+// ═══════════════════════════════════════════════════════════
+async function fetchESP32() {
+  try {
+    const res=await fetch(cfg.esp,{signal:AbortSignal.timeout(4000)});
+    const data=await res.json();
+    ingestData(data,'esp32');
+    setConnBadge('online');
+  } catch(e) { setConnBadge('offline'); }
+}
+
+async function fetchFirebase() {
+  try {
+    const res=await fetch(cfg.fbUrl+cfg.fbPath+'.json',{signal:AbortSignal.timeout(6000)});
+    const data=await res.json();
+    if(data) { ingestData(data,'firebase'); document.getElementById('fbBadge').style.display=''; }
+  } catch(e) { }
+}
+
+function ingestData(data, source) {
+  if(typeof data.ph==='number') sensors.ph=data.ph;
+  if(typeof data.salinity==='number') sensors.salinity=data.salinity;
+  if(typeof data.temperature==='number') sensors.temperature=data.temperature;
+  if(Array.isArray(data.weights)) {
+    const now=new Date();
+    const ds=now.toISOString().split('T')[0];
+    const ts=now.toTimeString().slice(0,5);
+    data.weights.forEach((w,i)=>{
+      if(i<N&&typeof w==='number') {
+        compartments[i].weight=parseFloat(w.toFixed(1));
+        updateStatus(compartments[i]);
+        const last=compartments[i].history[compartments[i].history.length-1];
+        if(!last||last.date!==ds) {
+          compartments[i].history.push({date:ds,time:ts,weight:compartments[i].weight,note:source+' auto',source});
+        } else { last.weight=compartments[i].weight; }
+      }
+    });
+    saveComps();
+  }
+  // Record sensor history
+  sensorHistory.push({time:new Date().toISOString(),ph:sensors.ph,sal:sensors.salinity,tmp:sensors.temperature});
+  sensorHistory=sensorHistory.slice(-200);
+  localStorage.setItem('sensorHistory',JSON.stringify(sensorHistory));
+  const active=document.querySelector('.page.active').id;
+  if(active==='pageOverview') renderOverview();
+  else if(active==='pageAnalytics') renderAnalytics();
+  renderSidebar();
+  checkAlerts();
+}
+
+function setConnBadge(state) {
+  const b=document.getElementById('connBadge');
+  if(cfg.esp||cfg.fbUrl) { b.textContent=state==='online'?'⬤ LIVE':'⬤ RECONNECTING…'; b.className='conn-badge '+(state==='online'?'online':'offline'); }
+  else { b.textContent='⬤ DEMO MODE'; b.className='conn-badge demo'; }
+}
+
+function startPolling() {
+  if(pollTimer) clearInterval(pollTimer);
+  if(!cfg.esp&&!cfg.fbUrl) return;
+  const poll=()=>{ if(cfg.esp) fetchESP32(); if(cfg.fbUrl) fetchFirebase(); };
+  poll(); pollTimer=setInterval(poll,cfg.interval*1000);
+}
+
+// Demo simulation
+function demoUpdate() {
+  if(cfg.esp||cfg.fbUrl) return;
+  sensors.ph=parseFloat((7.2+Math.random()*1.4).toFixed(2));
+  sensors.salinity=parseFloat((10+Math.random()*14).toFixed(1));
+  sensors.temperature=parseFloat((25+Math.random()*5).toFixed(1));
+  compartments.forEach(c=>{ c.weight=parseFloat((c.weight+(Math.random()*1.2-0.1)).toFixed(1)); updateStatus(c); });
+  sensorHistory.push({time:new Date().toISOString(),ph:sensors.ph,sal:sensors.salinity,tmp:sensors.temperature});
+  sensorHistory=sensorHistory.slice(-200);
+  localStorage.setItem('sensorHistory',JSON.stringify(sensorHistory));
+  renderSidebar();
+  checkAlerts();
+  const active=document.querySelector('.page.active').id;
+  if(active==='pageOverview') renderOverview();
+}
+setInterval(demoUpdate,15000);
+function manualRefresh() { if(cfg.esp||cfg.fbUrl) { if(cfg.esp)fetchESP32(); if(cfg.fbUrl)fetchFirebase(); } else { demoUpdate(); showToast('Demo: sensors randomized'); } }
+
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+function openConfig() {
+  document.getElementById('cfgEsp').value=cfg.esp;
+  document.getElementById('cfgFbUrl').value=cfg.fbUrl;
+  document.getElementById('cfgFbPath').value=cfg.fbPath;
+  document.getElementById('cfgApiKey').value=cfg.apiKey;
+  document.getElementById('cfgInt').value=cfg.interval;
+  document.getElementById('cfgCalib').value=cfg.calib;
+  document.getElementById('cfgTarget').value=cfg.target;
+  document.getElementById('cfgOverlay').classList.add('open');
+}
+function closeConfig() { document.getElementById('cfgOverlay').classList.remove('open'); }
+function saveConfig() {
+  cfg.esp=document.getElementById('cfgEsp').value.trim();
+  cfg.fbUrl=document.getElementById('cfgFbUrl').value.trim();
+  cfg.fbPath=document.getElementById('cfgFbPath').value.trim()||'/crab_monitor/latest';
+  cfg.apiKey=document.getElementById('cfgApiKey').value.trim();
+  cfg.interval=Math.max(1,parseInt(document.getElementById('cfgInt').value)||5);
+  cfg.calib=parseFloat(document.getElementById('cfgCalib').value)||420;
+  cfg.target=parseFloat(document.getElementById('cfgTarget').value)||300;
+  ['esp','fb_url','fb_path','api_key','esp_int','calib','target'].forEach((k,i)=>
+    localStorage.setItem(['esp_url','fb_url','fb_path','api_key','esp_int','calib','target'][i],
+    [cfg.esp,cfg.fbUrl,cfg.fbPath,cfg.apiKey,cfg.interval,cfg.calib,cfg.target][i]));
+  closeConfig(); startPolling(); setConnBadge(false);
+  showToast(cfg.esp||cfg.fbUrl?'Connecting…':'Config saved','ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
 function exportCSV() {
-  let csv = 'ID,Date,Time,Weight_Grams,Source\n';
-  compartments.forEach(c => c.history.forEach(h => csv += `${c.id},${h.date},${h.time},${h.weight},${h.source}\n`));
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download = `CrabTrack_Data_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  showToast('Data exported successfully');
+  let csv='Compartment,Name,Date,Time,Weight(g),Change(g),Note,Source\n';
+  compartments.forEach(c=>c.history.forEach((h,i,arr)=>{
+    const prev=arr[i-1];
+    csv+=`${c.id},"${c.name}",${h.date},${h.time||''},${h.weight},${prev?(h.weight-prev.weight).toFixed(1):''},${h.note||''},${h.source||''}\n`;
+  }));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`crab_monitor_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+  showToast('CSV exported');
 }
 
-function initSystem() {
-  initCharts();
-  updateUI();
+function exportExcel() {
+  try {
+    const wb=XLSX.utils.book_new();
+    // Summary sheet
+    const summary=[['CRAB FATTENING MONITOR — REPORT','','','','',''],
+      ['Generated:',new Date().toLocaleString(),'','','',''],
+      ['pH:',sensors.ph,'Salinity:',sensors.salinity+'ppt','Temp:',sensors.temperature+'°C'],['','','','','',''],
+      ['ID','Name','Current(g)','Initial(g)','Gain(g)','Status'],
+      ...compartments.map(c=>[c.id,c.name,c.weight.toFixed(1),c.initWeight.toFixed(1),(c.weight-c.initWeight).toFixed(1),c.status.toUpperCase()])
+    ];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Summary');
+    // Weight history
+    const wRows=[['Compartment','Name','Date','Time','Weight(g)','Change(g)','Note']];
+    compartments.forEach(c=>c.history.forEach((h,i,arr)=>{
+      const prev=arr[i-1];
+      wRows.push([c.id,c.name,h.date,h.time||'',parseFloat(h.weight),prev?parseFloat((h.weight-prev.weight).toFixed(1)):'',h.note||'']);
+    }));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(wRows),'Weight History');
+    // Feeding
+    const fRows=[['Compartment','Name','Date','Feed Type','Amount(g)','Note']];
+    compartments.forEach(c=>(c.feedLog||[]).forEach(f=>fRows.push([c.id,c.name,f.date,f.type,f.amount,f.note||''])));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(fRows),'Feeding Log');
+    XLSX.writeFile(wb,`crab_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Excel report exported','ok');
+  } catch(e) { showToast('Excel export failed: '+e.message,'err'); }
+}
+
+function resetAll() {
+  if(!confirm('Reset ALL data? This cannot be undone.')) return;
+  ['comps_v2','sensorHistory','alertLog'].forEach(k=>localStorage.removeItem(k));
+  compartments=loadCompartments(); sensorHistory=[]; alertLog=[];
+  renderOverview(); showToast('All data reset','warn');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg,type='ok') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`show t-${type}`;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='',2800);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BOOTSTRAP
+// ═══════════════════════════════════════════════════════════
+compartments.forEach(c=>updateStatus(c));
+renderSidebar();
+renderOverview();
+startPolling();
+if(!sensorHistory.length) {
+  // Seed initial sensor history for demo charts
+  const now=new Date();
+  for(let i=40;i>=0;i--) {
+    const d=new Date(now); d.setMinutes(d.getMinutes()-i*30);
+    sensorHistory.push({time:d.toISOString(),ph:parseFloat((7.5+Math.random()*0.8).toFixed(2)),sal:parseFloat((13+Math.random()*5).toFixed(1)),tmp:parseFloat((26+Math.random()*2.5).toFixed(1))});
+  }
+  localStorage.setItem('sensorHistory',JSON.stringify(sensorHistory));
 }
 </script>
 </body>
