@@ -1,289 +1,528 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crab Track v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A1628">
+<title>Crab Fattening Monitor</title>
+<link rel="manifest" href="manifest.json">
 <style>
+/* ── THEME TOKENS ─────────────────────────────── */
 :root {
-  --bg:#0A1628;--bg2:#0F1E38;--bg3:#152544;--bg4:#1A2E52;
-  --border:rgba(0,212,170,0.15);--border2:rgba(0,212,170,0.3);
-  --teal:#00D4AA;--teal2:#00A882;--teal-dim:rgba(0,212,170,0.1);
-  --amber:#F59E0B;--amber-dim:rgba(245,158,11,0.1);
-  --red:#EF4444;--red-dim:rgba(239,68,68,0.1);
-  --blue:#3B82F6;--blue-dim:rgba(59,130,246,0.1);
-  --purple:#A855F7;--purple-dim:rgba(168,85,247,0.1);
-  --text:#E8F4F1;--text2:#8BAFC4;--text3:#4A7090;
-  --mono:'Courier New',Courier,monospace;
-  --r:10px;--rs:6px;
+  --teal:#00D4AA;--teal2:#00A882;--teal-d:rgba(0,212,170,.12);
+  --amber:#F59E0B;--amber-d:rgba(245,158,11,.12);
+  --red:#EF4444;--red-d:rgba(239,68,68,.12);
+  --blue:#3B82F6;--blue-d:rgba(59,130,246,.12);
+  --purple:#A855F7;--purple-d:rgba(168,85,247,.12);
+  --mono:'Courier New',monospace;
+  --r:12px;--rs:8px;--xs:4px;
+  --transition:all .2s ease;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh}
+[data-theme="dark"] {
+  --bg:#0A1628;--bg2:#0F1E38;--bg3:#152544;--bg4:#1A2E52;
+  --border:rgba(0,212,170,.13);--border2:rgba(0,212,170,.28);
+  --text:#E8F4F1;--text2:#8BAFC4;--text3:#4A7090;
+  --card-shadow:none;
+}
+[data-theme="light"] {
+  --bg:#F0F4F8;--bg2:#FFFFFF;--bg3:#EBF0F6;--bg4:#DDE4ED;
+  --border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.18);
+  --text:#0D1B2A;--text2:#3A5068;--text3:#7A95A8;
+  --card-shadow:0 1px 4px rgba(0,0,0,.07);
+}
 
-/* LAYOUT */
-.app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:220px 1fr;height:100vh;overflow:hidden}
-.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:8px}
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
-.main{overflow-y:auto;padding:18px}
+/* ── RESET ────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+button{font-family:var(--mono);cursor:pointer}
+input,select,textarea{font-family:var(--mono)}
+canvas{display:block}
 
-/* TOPBAR */
-.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:glow 2s infinite;flex-shrink:0}
-@keyframes glow{0%,100%{opacity:1;box-shadow:0 0 8px var(--teal)}50%{opacity:.5;box-shadow:0 0 3px var(--teal)}}
-.logo-text{font-size:13px;font-weight:bold;letter-spacing:.08em}
-.logo-sub{font-size:9px;color:var(--text3);letter-spacing:.05em}
-.conn-badge{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;white-space:nowrap}
-.conn-badge.online{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
-.conn-badge.offline{border-color:var(--red);color:var(--red);background:var(--red-dim)}
-.conn-badge.demo{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+/* ── LAYOUT ───────────────────────────────────── */
+.app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:240px 1fr;height:100vh;overflow:hidden}
+
+/* ── TOPBAR ───────────────────────────────────── */
+.topbar{
+  grid-column:1/-1;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;gap:10px;
+  position:relative;z-index:50;
+}
+.logo{display:flex;align-items:center;gap:10px;min-width:0}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);flex-shrink:0;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 10px var(--teal)}50%{opacity:.5;box-shadow:0 0 4px var(--teal)}}
+.logo-text{font-size:13px;font-weight:bold;letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:.05em;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.conn-badge{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;white-space:nowrap;transition:var(--transition)}
+.conn-badge.online{border-color:var(--teal);color:var(--teal);background:var(--teal-d)}
+.conn-badge.offline{border-color:var(--red);color:var(--red);background:var(--red-d)}
+.conn-badge.demo{border-color:var(--amber);color:var(--amber);background:var(--amber-d)}
 .top-time{font-size:10px;color:var(--text3);white-space:nowrap}
-.tbtn{background:none;border:1px solid var(--border2);border-radius:var(--rs);padding:4px 10px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:11px;white-space:nowrap}
-.tbtn:hover{background:var(--teal-dim);color:var(--teal);border-color:var(--teal)}
-.tbtn.active{background:var(--teal-dim);color:var(--teal);border-color:var(--teal)}
+.icon-btn{background:none;border:1px solid var(--border2);border-radius:var(--rs);padding:6px 10px;color:var(--text2);font-size:12px;transition:var(--transition);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.icon-btn:hover{background:var(--teal-d);color:var(--teal);border-color:var(--teal)}
 #alertBell{position:relative}
 .bell-dot{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--red);display:none}
-.bell-dot.show{display:block}
+.bell-dot.show{display:block;animation:bellPop .4s ease}
+@keyframes bellPop{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+.hamburger{display:none;background:none;border:none;color:var(--text2);font-size:20px;padding:4px}
 
-/* SIDEBAR NAV */
+/* ── SIDEBAR ──────────────────────────────────── */
+.sidebar{
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+  transition:transform .25s ease;
+}
 .sb-nav{padding:10px 8px;border-bottom:1px solid var(--border)}
-.sb-nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;font-size:11px;color:var(--text2);margin-bottom:2px;transition:all .15s}
+.sb-nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:var(--rs);
+  cursor:pointer;font-size:11px;color:var(--text2);
+  margin-bottom:2px;transition:var(--transition);
+  user-select:none;
+}
 .sb-nav-item:hover{background:var(--bg3);color:var(--text)}
-.sb-nav-item.active{background:var(--teal-dim);color:var(--teal);border-left:2px solid var(--teal)}
-.sb-nav-icon{font-size:14px;width:18px;text-align:center}
-
-/* SIDEBAR SENSORS */
-.sb-sensors{padding:10px 8px;border-bottom:1px solid var(--border)}
-.sb-sec-label{font-size:9px;color:var(--text3);letter-spacing:.1em;padding:0 6px;margin-bottom:6px}
-.sensor-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;position:relative;overflow:hidden}
-.sensor-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;border-radius:1px 0 0 1px}
-.sensor-block.ph::before{background:var(--teal)}
-.sensor-block.sal::before{background:var(--blue)}
-.sensor-block.tmp::before{background:var(--amber)}
-.sensor-block.alert-sensor{border-color:rgba(239,68,68,.5);animation:alertPulse 1.5s infinite}
-@keyframes alertPulse{0%,100%{border-color:rgba(239,68,68,.5)}50%{border-color:rgba(239,68,68,1)}}
-.sb-label{font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px}
-.sb-val{font-size:24px;font-weight:bold;line-height:1;color:var(--text)}
-.sb-unit{font-size:11px;font-weight:normal;color:var(--text2);margin-left:3px}
-.sb-bar{height:3px;background:var(--bg4);border-radius:2px;margin:6px 0 3px;overflow:hidden}
+.sb-nav-item.active{background:var(--teal-d);color:var(--teal);border-left:2px solid var(--teal)}
+.sb-nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.sb-sec{padding:10px 8px;border-bottom:1px solid var(--border)}
+.sb-lbl{font-size:9px;color:var(--text3);letter-spacing:.1em;padding:0 6px;margin-bottom:6px}
+.sensor-blk{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);padding:10px 12px;margin-bottom:6px;
+  position:relative;overflow:hidden;transition:border-color .3s;
+}
+.sensor-blk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:1px 0 0 1px}
+.sensor-blk.ph::before{background:var(--teal)}
+.sensor-blk.sal::before{background:var(--blue)}
+.sensor-blk.tmp::before{background:var(--amber)}
+.sensor-blk.alerted{border-color:var(--red)!important;animation:alertBlink 1.5s infinite}
+@keyframes alertBlink{0%,100%{border-color:rgba(239,68,68,.5)}50%{border-color:var(--red)}}
+.sb-slbl{font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:3px}
+.sb-sval{font-size:24px;font-weight:bold;line-height:1;color:var(--text);transition:color .3s}
+.sb-sunit{font-size:11px;font-weight:normal;color:var(--text2);margin-left:2px}
+.sb-bar{height:3px;background:var(--bg4);border-radius:2px;margin:7px 0 3px;overflow:hidden}
 .sb-bar-fill{height:100%;border-radius:2px;transition:width 1s ease}
 .sb-range{display:flex;justify-content:space-between;font-size:9px;color:var(--text3)}
-.sb-badge{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:4px;display:inline-block}
-.sb-badge.ok{color:var(--teal);background:var(--teal-dim);border:1px solid rgba(0,212,170,.3)}
-.sb-badge.warn{color:var(--amber);background:var(--amber-dim);border:1px solid rgba(245,158,11,.3)}
-.sb-badge.err{color:var(--red);background:var(--red-dim);border:1px solid rgba(239,68,68,.3)}
-
-/* SIDEBAR COMP LIST */
-.sb-complist{padding:8px;flex:1}
-.cl-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--rs);cursor:pointer;margin-bottom:2px;transition:background .15s}
+.sbadge{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:4px;display:inline-block;font-weight:500}
+.sbadge.ok{color:var(--teal);background:var(--teal-d);border:1px solid rgba(0,212,170,.3)}
+.sbadge.warn{color:var(--amber);background:var(--amber-d);border:1px solid rgba(245,158,11,.3)}
+.sbadge.err{color:var(--red);background:var(--red-d);border:1px solid rgba(239,68,68,.3)}
+.sb-clist{padding:8px;flex:1}
+.cl-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 8px;border-radius:var(--rs);
+  cursor:pointer;margin-bottom:2px;transition:var(--transition);
+}
 .cl-item:hover{background:var(--bg3)}
-.cl-item.active{background:var(--teal-dim);border-left:2px solid var(--teal)}
-.cl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cl-item.active{background:var(--teal-d);border-left:2px solid var(--teal)}
+.cl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
 .cl-name{flex:1;font-size:10px;color:var(--text2)}
 .cl-item.active .cl-name{color:var(--teal)}
 .cl-w{font-size:10px;color:var(--text3)}
 
-/* PAGES */
-.page{display:none}.page.active{display:block}
+/* ── MAIN ─────────────────────────────────────── */
+.main{overflow-y:auto;overflow-x:hidden;padding:18px 20px;padding-bottom:20px}
+.page{display:none;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-/* STAT CARDS */
+/* ── STAT CARDS ───────────────────────────────── */
 .stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden}
-.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 var(--r) var(--r)}
+.stat-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px;
+  box-shadow:var(--card-shadow);
+  position:relative;overflow:hidden;transition:transform .15s;
+}
+.stat-card:hover{transform:translateY(-1px)}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
 .stat-card.c-teal::after{background:var(--teal)}
+.stat-card.c-blue::after{background:var(--blue)}
 .stat-card.c-amber::after{background:var(--amber)}
 .stat-card.c-red::after{background:var(--red)}
-.stat-card.c-blue::after{background:var(--blue)}
 .stat-card.c-purple::after{background:var(--purple)}
 .stat-lbl{font-size:9px;color:var(--text3);letter-spacing:.09em;margin-bottom:5px}
 .stat-val{font-size:22px;font-weight:bold;color:var(--text);line-height:1}
 .stat-unit{font-size:11px;font-weight:normal;color:var(--text2)}
 .stat-sub{font-size:10px;color:var(--text3);margin-top:3px}
 
-/* COMPARTMENT GRID */
-.grid-lbl{font-size:9px;color:var(--text3);letter-spacing:.1em;margin-bottom:10px}
+/* ── COMPARTMENT GRID ─────────────────────────── */
+.sec-lbl{font-size:9px;color:var(--text3);letter-spacing:.1em;margin-bottom:10px}
 .comp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
-.comp-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;cursor:pointer;transition:all .15s;position:relative}
-.comp-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.comp-card.sel-card{border-color:var(--teal)}
-.comp-card.warn-card{border-color:rgba(245,158,11,.5)}
-.comp-card.alert-card{border-color:rgba(239,68,68,.6);animation:alertPulse 2s infinite}
+.comp-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:10px;cursor:pointer;
+  box-shadow:var(--card-shadow);
+  transition:transform .15s,border-color .2s;
+}
+.comp-card:hover{transform:translateY(-2px);border-color:var(--border2)}
+.comp-card.sel{border-color:var(--teal)}
+.comp-card.warn{border-color:rgba(245,158,11,.5)}
+.comp-card.alrt{border-color:rgba(239,68,68,.6);animation:alertBlink 2s infinite}
 .cc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .cc-id{font-size:9px;color:var(--text3);letter-spacing:.07em}
-.cc-dot{width:6px;height:6px;border-radius:50%}
-.tank{position:relative;height:56px;background:var(--bg4);border-radius:5px;overflow:hidden;margin-bottom:8px;border:1px solid var(--border)}
-.tank-water{position:absolute;bottom:0;left:0;right:0;transition:height 1.2s cubic-bezier(.4,0,.2,1);border-radius:0 0 4px 4px;opacity:.75}
-.tw-ok{background:linear-gradient(180deg,#00D4AA,#00A882)}
-.tw-warn{background:linear-gradient(180deg,#F59E0B,#D97706)}
-.tw-alert{background:linear-gradient(180deg,#EF4444,#DC2626)}
-.tank-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6);z-index:2}
+.cc-dot{width:7px;height:7px;border-radius:50%;transition:background .3s}
+.tank{position:relative;height:58px;background:var(--bg4);border-radius:6px;overflow:hidden;margin-bottom:8px;border:1px solid var(--border)}
+.tank-water{
+  position:absolute;bottom:0;left:0;right:0;
+  border-radius:0 0 5px 5px;
+  transition:height 1.4s cubic-bezier(.4,0,.2,1);
+  opacity:.78;
+}
+.tw-ok{background:linear-gradient(0deg,#00A882,#00D4AA)}
+.tw-warn{background:linear-gradient(0deg,#D97706,#F59E0B)}
+.tw-alrt{background:linear-gradient(0deg,#DC2626,#EF4444)}
+.tank-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);z-index:2}
 .cc-name{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc-gain{font-size:10px;margin-top:2px}
-.harvest-badge{font-size:9px;padding:2px 6px;border-radius:8px;margin-top:4px;display:inline-block;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
 
-/* PANELS */
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px}
-.panel-title{font-size:10px;color:var(--text2);letter-spacing:.08em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.chart-wrap{position:relative;width:100%;height:180px}
-.chart-wrap.tall{height:220px}
+/* ── HARVEST ROW ──────────────────────────────── */
+.harvest-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.hv-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:10px;text-align:center;
+  box-shadow:var(--card-shadow);
+}
+.hv-id{font-size:9px;color:var(--text3);margin-bottom:2px}
+.hv-days{font-size:20px;font-weight:bold;color:var(--purple)}
+.hv-lbl{font-size:9px;color:var(--text3);margin-top:1px}
+.hv-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden}
+.hv-bar-fill{height:100%;border-radius:2px;transition:width 1.2s ease}
 
-/* DETAIL PAGE */
-.det-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+/* ── PANELS ───────────────────────────────────── */
+.panel{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px;margin-bottom:14px;
+  box-shadow:var(--card-shadow);
+}
+.panel-title{
+  font-size:10px;color:var(--text2);letter-spacing:.08em;
+  margin-bottom:12px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;
+}
+.chart-wrap{position:relative;width:100%}
+.chart-wrap.h180{height:180px}
+.chart-wrap.h220{height:220px}
+
+/* ── DETAIL PAGE ──────────────────────────────── */
+.det-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
 .det-title{font-size:15px;font-weight:bold;color:var(--text)}
 .det-sub{font-size:10px;color:var(--text3);margin-top:2px}
 .met-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-.met-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.met-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 14px;
+  box-shadow:var(--card-shadow);
+}
 .met-lbl{font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:4px}
 .met-val{font-size:22px;font-weight:bold;line-height:1}
 .met-unit{font-size:11px;font-weight:normal;color:var(--text2)}
 .met-sub{font-size:10px;color:var(--text3);margin-top:3px}
 
-/* TABS */
-.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:0}
-.tab{padding:6px 14px;font-size:11px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:var(--mono)}
+/* ── TABS ─────────────────────────────────────── */
+.tabs{display:flex;gap:2px;margin-bottom:14px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{
+  padding:7px 14px;font-size:11px;color:var(--text3);
+  cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .15s;
+  white-space:nowrap;font-family:var(--mono);
+  background:none;border-top:none;border-left:none;border-right:none;
+}
 .tab:hover{color:var(--text2)}
 .tab.active{color:var(--teal);border-bottom-color:var(--teal)}
 .tab-content{display:none}.tab-content.active{display:block}
 
-/* FORMS */
+/* ── FORMS ────────────────────────────────────── */
 .form-row{display:grid;gap:8px;align-items:end}
+.form-row.c2{grid-template-columns:1fr 1fr}
 .form-row.c3{grid-template-columns:1fr 1fr 1fr auto}
 .form-row.c4{grid-template-columns:1fr 1fr 1fr 1fr auto}
 .fg label{display:block;font-size:9px;color:var(--text3);letter-spacing:.07em;margin-bottom:4px}
-.fg input,.fg select,.fg textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none}
+.fg input,.fg select,.fg textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rs);color:var(--text);
+  font-size:12px;padding:7px 9px;outline:none;
+  transition:border-color .15s;
+}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--teal)}
 .fg textarea{resize:vertical;min-height:56px}
-.btn-p{background:var(--teal);color:#0A1628;border:none;border-radius:var(--rs);padding:7px 14px;font-family:var(--mono);font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap}
+.btn-p{
+  background:var(--teal);color:#0A1628;border:none;
+  border-radius:var(--rs);padding:8px 16px;
+  font-size:12px;font-weight:bold;
+  white-space:nowrap;transition:background .15s,transform .1s;
+}
 .btn-p:hover{background:var(--teal2)}
-.btn-s{background:none;border:1px solid var(--border2);border-radius:var(--rs);padding:7px 14px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:11px;white-space:nowrap}
+.btn-p:active{transform:scale(.97)}
+.btn-s{
+  background:none;border:1px solid var(--border2);
+  border-radius:var(--rs);padding:7px 14px;
+  color:var(--text2);font-size:11px;
+  transition:var(--transition);white-space:nowrap;
+}
 .btn-s:hover{background:var(--bg3)}
-.btn-danger{background:none;border:1px solid rgba(239,68,68,.4);border-radius:var(--rs);padding:7px 14px;color:var(--red);cursor:pointer;font-family:var(--mono);font-size:11px}
+.btn-danger{
+  background:none;border:1px solid rgba(239,68,68,.4);
+  border-radius:var(--rs);padding:7px 14px;
+  color:var(--red);font-size:11px;
+}
+.action-row{display:flex;gap:8px;flex-wrap:wrap}
 
-/* TABLE */
+/* ── TABLES ───────────────────────────────────── */
 .tbl{width:100%;border-collapse:collapse;font-size:11px}
 .tbl th{font-size:9px;color:var(--text3);letter-spacing:.07em;text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)}
-.tbl td{padding:6px 8px;border-bottom:1px solid rgba(0,212,170,.05);color:var(--text2)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(0,212,170,.05);color:var(--text2);vertical-align:middle}
 .tbl tr:hover td{background:var(--bg3)}
 .td-m{font-family:var(--mono);color:var(--text)}
+.tbl-wrap{overflow-x:auto}
 
-/* ALERT PAGE */
-.alert-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+/* ── ALERT PAGE ───────────────────────────────── */
+.alert-item{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 14px;
+  margin-bottom:8px;display:flex;align-items:center;gap:12px;
+  box-shadow:var(--card-shadow);transition:var(--transition);
+}
 .alert-item.active-alert{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.04)}
 .alert-item.warn-alert{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.04)}
-.ai-icon{font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-icon{font-size:20px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ai-title{font-size:12px;font-weight:bold;color:var(--text);margin-bottom:2px}
 .ai-sub{font-size:10px;color:var(--text3)}
 .ai-time{font-size:10px;color:var(--text3);margin-left:auto;white-space:nowrap}
-
-/* THRESHOLD SETTINGS */
-.th-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.th-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .th-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px}
-.th-label{font-size:10px;color:var(--text2);margin-bottom:10px;font-weight:bold}
+.th-lbl{font-size:10px;color:var(--text2);margin-bottom:10px;font-weight:bold}
 .th-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
 
-/* AI CHAT */
-.chat-wrap{display:flex;flex-direction:column;height:420px}
-.chat-messages{flex:1;overflow-y:auto;padding:10px 0;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:85%;padding:10px 14px;border-radius:var(--r);font-size:12px;line-height:1.6}
-.msg.user{align-self:flex-end;background:var(--teal-dim);border:1px solid rgba(0,212,170,.3);color:var(--text)}
+/* ── AI CHAT ──────────────────────────────────── */
+.chat-wrap{display:flex;flex-direction:column}
+.chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:400px;padding:4px 0}
+.msg{max-width:86%;padding:10px 14px;border-radius:var(--r);font-size:12px;line-height:1.65}
+.msg.user{align-self:flex-end;background:var(--teal-d);border:1px solid rgba(0,212,170,.3);color:var(--text)}
 .msg.ai{align-self:flex-start;background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
-.msg.ai .msg-lbl{font-size:9px;color:var(--purple);letter-spacing:.06em;margin-bottom:4px}
+.msg-lbl{font-size:9px;color:var(--purple);letter-spacing:.06em;margin-bottom:4px}
 .msg.typing{color:var(--text3);font-style:italic}
-.chat-input-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 12px;outline:none;resize:none;height:38px}
-.chat-input:focus{border-color:var(--purple)}
-.quick-prompts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.qp{font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--text3);cursor:pointer;transition:all .15s}
-.qp:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-dim)}
+.chat-inp-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.chat-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rs);color:var(--text);
+  font-size:12px;padding:8px 12px;outline:none;
+  resize:none;height:38px;transition:border-color .15s;
+}
+.chat-inp:focus{border-color:var(--purple)}
+.qprompts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.qp{
+  font-size:10px;padding:4px 10px;
+  border-radius:20px;border:1px solid var(--border2);
+  color:var(--text3);cursor:pointer;transition:var(--transition);
+  background:none;
+}
+.qp:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-d)}
 
-/* ANALYTICS PAGE */
+/* ── ANALYTICS ────────────────────────────────── */
 .analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 
-/* FEEDING PAGE */
-.feed-schedule{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+/* ── FEEDING ──────────────────────────────────── */
+.feed-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
 .feed-day{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 4px;text-align:center}
-.feed-day-lbl{font-size:9px;color:var(--text3);letter-spacing:.06em;margin-bottom:6px}
+.feed-day-lbl{font-size:9px;color:var(--text3);letter-spacing:.06em;margin-bottom:5px}
 .feed-dot{width:8px;height:8px;border-radius:50%;margin:2px auto}
-.feed-dot.fed{background:var(--teal)}
-.feed-dot.partial{background:var(--amber)}
-.feed-dot.missed{background:var(--red)}
-.feed-dot.upcoming{background:var(--bg4);border:1px solid var(--border2)}
+.fd-fed{background:var(--teal)}.fd-partial{background:var(--amber)}.fd-missed{background:var(--red)}.fd-upcoming{background:var(--bg4);border:1px solid var(--border2)}
 
-/* HARVEST PREDICTOR */
-.harvest-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
-.hv-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
-.hv-days{font-size:20px;font-weight:bold;color:var(--purple)}
-.hv-lbl{font-size:9px;color:var(--text3);margin-top:2px}
-.hv-id{font-size:10px;color:var(--text2);margin-bottom:4px}
-.hv-ready{color:var(--teal) !important}
-.hv-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden}
-.hv-bar-fill{height:100%;border-radius:2px;background:var(--purple);transition:width 1s}
-
-/* CONFIG MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(5,10,20,.85);z-index:100;align-items:center;justify-content:center}
+/* ── MODALS ───────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(5,10,20,.88);z-index:200;align-items:center;justify-content:center;padding:16px}
 .overlay.open{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:22px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:24px;
+  width:520px;max-width:100%;max-height:90vh;overflow-y:auto;
+  animation:modalIn .2s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 .modal-title{font-size:14px;font-weight:bold;color:var(--text);margin-bottom:4px}
 .modal-sub{font-size:10px;color:var(--text3);margin-bottom:18px}
 .mf{margin-bottom:12px}
 .mf label{display:block;font-size:9px;color:var(--text3);letter-spacing:.07em;margin-bottom:4px}
-.mf input,.mf select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none}
+.mf input,.mf select{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rs);color:var(--text);
+  font-size:12px;padding:8px 10px;outline:none;
+}
 .mf input:focus{border-color:var(--teal)}
 .mf-hint{font-size:10px;color:var(--text3);margin-top:3px}
-.json-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:10px;color:var(--text3);line-height:1.7;margin-top:8px}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.json-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:10px;color:var(--text3);line-height:1.75;margin-top:10px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.modal-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.modal-col-lbl{font-size:10px;color:var(--teal);letter-spacing:.08em;margin-bottom:10px;font-weight:bold}
 
-/* ALERT MODAL */
-.alert-modal{background:var(--bg2);border:1px solid rgba(239,68,68,.4);border-radius:var(--r);padding:20px;width:380px;max-width:95vw}
+/* ── BOTTOM NAV (mobile) ──────────────────────── */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  z-index:100;
+  padding-bottom:var(--safe-bottom);
+}
+.bottom-nav-items{display:flex;justify-content:space-around;padding:4px 0}
+.bn-item{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 12px;border-radius:var(--rs);cursor:pointer;
+  transition:var(--transition);background:none;border:none;
+  color:var(--text3);font-family:var(--mono);font-size:9px;
+  letter-spacing:.04em;flex:1;
+}
+.bn-item:hover,.bn-item.active{color:var(--teal)}
+.bn-item.active .bn-icon{color:var(--teal)}
+.bn-icon{font-size:20px;line-height:1}
+.bn-dot{position:absolute;top:4px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--red);display:none}
+.bn-dot.show{display:block}
 
-/* TOAST */
-#toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--text);opacity:0;pointer-events:none;transition:opacity .25s;z-index:200;max-width:300px}
-#toast.show{opacity:1}
+/* ── QUICK ACTION BAR (mobile) ───────────────── */
+.quick-bar{
+  display:none;
+  position:fixed;bottom:58px;left:0;right:0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:8px 12px;z-index:99;
+  flex-direction:row;gap:8px;overflow-x:auto;
+}
+.quick-bar.show{display:flex}
+.qbar-btn{
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rs);padding:8px 14px;
+  color:var(--text2);font-size:11px;
+  white-space:nowrap;flex-shrink:0;
+  transition:var(--transition);
+}
+.qbar-btn:hover,.qbar-btn:active{background:var(--teal-d);color:var(--teal);border-color:var(--teal)}
+
+/* ── SIDEBAR OVERLAY (mobile) ─────────────────── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:79}
+.sidebar-overlay.show{display:block}
+
+/* ── TOAST ────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:80px;right:16px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rs);padding:9px 14px;
+  font-size:12px;color:var(--text);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;
+  transform:translateY(8px);z-index:300;max-width:280px;
+}
+#toast.show{opacity:1;transform:translateY(0)}
 #toast.t-ok{border-color:rgba(0,212,170,.5);color:var(--teal)}
 #toast.t-warn{border-color:rgba(245,158,11,.5);color:var(--amber)}
 #toast.t-err{border-color:rgba(239,68,68,.5);color:var(--red)}
 
-/* REPORT PAGE */
-.report-section{margin-bottom:20px}
-.report-section h3{font-size:11px;color:var(--text2);letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+/* ── SWIPE INDICATOR ──────────────────────────── */
+.swipe-hint{display:none;text-align:center;font-size:10px;color:var(--text3);padding:8px;border-top:1px solid var(--border);margin-top:10px}
 
-/* SCROLLBAR */
+/* ── NUMBER COUNTER ───────────────────────────── */
+.counting{transition:color .3s}
+
+/* ── SCROLLBAR ────────────────────────────────── */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 
-/* RESPONSIVE */
+/* ── RESPONSIVE ───────────────────────────────── */
+
+/* Tablet: 601–900px */
 @media(max-width:900px){
   .app{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .stat-row{grid-template-columns:repeat(2,1fr)}
-  .comp-grid,.harvest-row{grid-template-columns:repeat(2,1fr)}
+  .sidebar{
+    position:fixed;left:0;top:56px;bottom:0;
+    width:260px;z-index:80;
+    transform:translateX(-100%);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex}
+  .logo-sub{display:none}
+  .top-time{display:none}
+  .stat-row{grid-template-columns:repeat(3,1fr)}
+  .comp-grid{grid-template-columns:repeat(3,1fr)}
+  .harvest-row{grid-template-columns:repeat(5,1fr)}
   .analytics-grid{grid-template-columns:1fr}
   .met-row{grid-template-columns:repeat(2,1fr)}
+  .main{padding:14px 14px 80px}
+  .bottom-nav{display:block}
+  .modal-2col{grid-template-columns:1fr}
+  .form-row.c4{grid-template-columns:1fr 1fr}
+  .form-row.c3{grid-template-columns:1fr 1fr}
+  .swipe-hint{display:block}
+}
+
+/* Phone: ≤600px */
+@media(max-width:600px){
+  .topbar{padding:0 10px;gap:6px}
+  .logo-text{font-size:11px}
+  .icon-btn span{display:none}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .comp-grid{grid-template-columns:repeat(2,1fr)}
+  .harvest-row{grid-template-columns:repeat(2,1fr)}
+  .th-grid{grid-template-columns:1fr}
+  .met-row{grid-template-columns:1fr 1fr}
+  .form-row.c4,.form-row.c3{grid-template-columns:1fr}
+  .form-row.c4 .btn-p,.form-row.c3 .btn-p{width:100%}
+  .action-row{flex-direction:column}
+  .action-row .btn-s,.action-row .btn-danger{width:100%;text-align:center}
+  .main{padding:10px 10px 80px}
+  .panel{padding:12px}
+  .conn-badge{font-size:9px;padding:3px 8px}
+  .quick-bar{display:flex}
+  .tabs{gap:0}
+  .tab{padding:7px 10px;font-size:10px}
+  .analytics-grid{grid-template-columns:1fr}
+  .det-hdr{flex-direction:column;align-items:flex-start}
+  .det-hdr .btn-group{width:100%;display:flex;gap:8px}
+  .det-hdr .btn-group .btn-s{flex:1;text-align:center}
+}
+
+/* Very small: ≤360px */
+@media(max-width:360px){
+  .comp-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .harvest-row{grid-template-columns:repeat(2,1fr)}
+  .stat-val{font-size:18px}
 }
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- ═══ TOPBAR ═══════════════════════════════════════════════ -->
+<!-- ═══ TOPBAR ════════════════════════════════════════════ -->
 <header class="topbar">
-  <div style="display:flex;align-items:center;gap:10px">
+  <div class="logo">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
     <div class="logo-dot"></div>
     <div>
-      <div class="logo-text">CRAB TRACK <span style="color:var(--teal);font-size:10px">v2</span></div>
-      <div class="logo-sub">ESP32 · HX711 ×10 · pH · EC/TDS · TEMP · FIREBASE</div>
+      <div class="logo-text">CRAB MONITOR <span style="color:var(--teal);font-size:10px">v3</span></div>
+      <div class="logo-sub">ESP32 · 10-Compartment · HX711 · pH · EC · Temp</div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span class="conn-badge demo" id="connBadge">⬤ DEMO MODE</span>
-    <span class="conn-badge" id="fbBadge" style="border-color:var(--text3);color:var(--text3);display:none">☁ FIREBASE</span>
+  <div class="topbar-right">
+    <span class="conn-badge demo" id="connBadge">⬤ DEMO</span>
     <span class="top-time" id="topTime"></span>
-    <button class="tbtn" id="alertBell" onclick="showPage('alerts')">🔔 Alerts<span class="bell-dot" id="bellDot"></span></button>
-    <button class="tbtn" onclick="openConfig()">⚙ Config</button>
+    <button class="icon-btn" id="alertBell" onclick="showPage('alerts')">🔔<span> Alerts</span><span class="bell-dot" id="bellDot"></span></button>
+    <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
+    <button class="icon-btn" onclick="openConfig()">⚙<span> Config</span></button>
   </div>
 </header>
 
-<!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
-<aside class="sidebar">
+<!-- ═══ SIDEBAR OVERLAY ═══════════════════════════════════ -->
+<div class="sidebar-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+<!-- ═══ SIDEBAR ══════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
   <div class="sb-nav">
     <div class="sb-nav-item active" onclick="showPage('overview')" id="nav-overview"><span class="sb-nav-icon">📊</span>Overview</div>
     <div class="sb-nav-item" onclick="showPage('analytics')" id="nav-analytics"><span class="sb-nav-icon">📈</span>Analytics</div>
@@ -292,105 +531,101 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
     <div class="sb-nav-item" onclick="showPage('ai')" id="nav-ai"><span class="sb-nav-icon">🤖</span>AI Assistant</div>
     <div class="sb-nav-item" onclick="showPage('reports')" id="nav-reports"><span class="sb-nav-icon">📋</span>Reports</div>
   </div>
-  <div class="sb-sensors" id="sbSensors"></div>
-  <div class="sb-complist" id="sbCompList"></div>
+  <div class="sb-sec" id="sbSensors"></div>
+  <div class="sb-clist" id="sbCompList"></div>
 </aside>
 
-<!-- ═══ MAIN ══════════════════════════════════════════════════ -->
-<main class="main">
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<main class="main" id="mainContent">
 
-<!-- ── OVERVIEW ── -->
+<!-- ── OVERVIEW ───────────────────────────────── -->
 <div class="page active" id="pageOverview">
   <div class="stat-row" id="statRow"></div>
+  <div class="sec-lbl">🎯 HARVEST COUNTDOWN</div>
   <div class="harvest-row" id="harvestRow"></div>
-  <div class="grid-lbl">COMPARTMENTS — CLICK TO INSPECT</div>
+  <div class="sec-lbl">COMPARTMENTS — tap to inspect</div>
   <div class="comp-grid" id="compGrid"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div class="action-row">
     <button class="btn-s" onclick="manualRefresh()">↺ Refresh</button>
-    <button class="btn-s" onclick="exportCSV()">⬇ Export CSV</button>
-    <button class="btn-s" onclick="exportExcel()">📊 Export Excel</button>
-    <button class="btn-s" onclick="showPage('reports')">📋 Generate Report</button>
-    <button class="btn-danger" onclick="resetAll()">✕ Reset Data</button>
+    <button class="btn-s" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn-s" onclick="exportExcel()">📊 Excel</button>
+    <button class="btn-s" onclick="showPage('reports')">📋 Report</button>
+    <button class="btn-danger" onclick="resetAll()">✕ Reset</button>
   </div>
 </div>
 
-<!-- ── DETAIL ── -->
+<!-- ── DETAIL ──────────────────────────────────── -->
 <div class="page" id="pageDetail">
   <div class="det-hdr">
     <div>
-      <div class="det-title" id="detTitle">Compartment C01</div>
-      <div class="det-sub" id="detSub">HX711 Load Cell · ESP32</div>
+      <div class="det-title" id="detTitle">C01 — Mud Crab #1</div>
+      <div class="det-sub" id="detSub">Compartment 1 of 10 · HX711 Load Cell</div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div class="btn-group" style="display:flex;gap:8px">
       <button class="btn-s" onclick="prevComp()">← Prev</button>
       <button class="btn-s" onclick="nextComp()">Next →</button>
-      <button class="btn-s" onclick="showPage('overview')">↩ Overview</button>
+      <button class="btn-s" onclick="showPage('overview')">↩ Back</button>
     </div>
   </div>
   <div class="met-row" id="detMetrics"></div>
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab(this,'tab-weight')">⚖ Weight</div>
-    <div class="tab" onclick="switchTab(this,'tab-log')">📝 Log</div>
-    <div class="tab" onclick="switchTab(this,'tab-feeding')">🦀 Feeding</div>
-    <div class="tab" onclick="switchTab(this,'tab-ai')">🤖 AI</div>
+  <div class="tabs" id="detTabs">
+    <button class="tab active" onclick="switchTab(this,'tw')">⚖ Weight</button>
+    <button class="tab" onclick="switchTab(this,'to')">📝 Log</button>
+    <button class="tab" onclick="switchTab(this,'tf')">🦀 Feeding</button>
+    <button class="tab" onclick="switchTab(this,'ta')">🤖 AI</button>
   </div>
 
-  <div class="tab-content active" id="tab-weight">
-    <div class="panel"><div class="panel-title">WEIGHT HISTORY</div><div class="chart-wrap tall"><canvas id="detChart"></canvas></div></div>
+  <div class="tab-content active" id="tw">
+    <div class="panel"><div class="panel-title">WEIGHT HISTORY</div><div class="chart-wrap h220"><canvas id="detChart" aria-label="Weight history chart"></canvas></div></div>
     <div class="panel">
-      <div class="panel-title">MANUAL WEIGHT ENTRY</div>
-      <div class="form-row c4">
-        <div class="fg"><label>WEIGHT (g)</label><input type="number" id="inW" placeholder="185.4" step="0.1"></div>
+      <div class="panel-title">LOG WEIGHT READING</div>
+      <div class="form-row c4" style="margin-bottom:0">
+        <div class="fg"><label>WEIGHT (g)</label><input type="number" id="inW" placeholder="185.4" step="0.1" inputmode="decimal"></div>
         <div class="fg"><label>DATE</label><input type="date" id="inD"></div>
         <div class="fg"><label>TIME</label><input type="time" id="inT"></div>
         <div class="fg"><label>NOTE</label><input type="text" id="inN" placeholder="After feeding..."></div>
         <button class="btn-p" onclick="logWeight()">+ LOG</button>
       </div>
     </div>
-    <div class="panel">
-      <div class="panel-title">HISTORY LOG</div>
-      <table class="tbl"><thead><tr><th>DATE</th><th>TIME</th><th>WEIGHT</th><th>CHANGE</th><th>NOTE</th><th></th></tr></thead>
-      <tbody id="weightLog"></tbody></table>
-    </div>
+    <div class="panel"><div class="panel-title">HISTORY</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>DATE</th><th>TIME</th><th>WEIGHT</th><th>CHANGE</th><th>NOTE</th><th></th></tr></thead><tbody id="weightLog"></tbody></table></div></div>
+    <div class="swipe-hint">← Swipe to switch compartment →</div>
   </div>
 
-  <div class="tab-content" id="tab-log">
+  <div class="tab-content" id="to">
     <div class="panel">
       <div class="panel-title">OBSERVATION LOG</div>
       <div class="form-row c3" style="margin-bottom:10px">
         <div class="fg"><label>DATE</label><input type="date" id="obsD"></div>
         <div class="fg"><label>TYPE</label><select id="obsType"><option>Observation</option><option>Health Check</option><option>Water Change</option><option>Treatment</option><option>Other</option></select></div>
-        <div class="fg" style="grid-column:span 2"><label>NOTE</label><textarea id="obsNote" rows="2" placeholder="Describe what you observed..."></textarea></div>
-        <button class="btn-p" onclick="logObs()">+ ADD</button>
+        <div class="fg" style="grid-column:1/-1"><label>NOTE</label><textarea id="obsNote" placeholder="Describe what you observed..."></textarea></div>
+        <button class="btn-p" onclick="logObs()" style="grid-column:1/-1">+ Add Observation</button>
       </div>
-      <table class="tbl"><thead><tr><th>DATE</th><th>TYPE</th><th>NOTE</th><th></th></tr></thead>
-      <tbody id="obsLog"></tbody></table>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>DATE</th><th>TYPE</th><th>NOTE</th><th></th></tr></thead><tbody id="obsLog"></tbody></table></div>
     </div>
   </div>
 
-  <div class="tab-content" id="tab-feeding">
+  <div class="tab-content" id="tf">
     <div class="panel">
       <div class="panel-title">FEEDING RECORD</div>
       <div class="form-row c4" style="margin-bottom:10px">
         <div class="fg"><label>DATE</label><input type="date" id="feedD"></div>
         <div class="fg"><label>FEED TYPE</label><select id="feedType"><option>Fresh fish</option><option>Pellets</option><option>Squid</option><option>Shrimp</option><option>Mixed</option></select></div>
-        <div class="fg"><label>AMOUNT (g)</label><input type="number" id="feedAmt" placeholder="50" step="1"></div>
+        <div class="fg"><label>AMOUNT (g)</label><input type="number" id="feedAmt" placeholder="50" inputmode="numeric"></div>
         <div class="fg"><label>NOTE</label><input type="text" id="feedNote" placeholder="Optional..."></div>
-        <button class="btn-p" onclick="logFeed()">+ LOG</button>
+        <button class="btn-p" onclick="logFeed()">+ Log Feed</button>
       </div>
-      <table class="tbl"><thead><tr><th>DATE</th><th>TYPE</th><th>AMOUNT</th><th>NOTE</th><th></th></tr></thead>
-      <tbody id="feedLog"></tbody></table>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>DATE</th><th>TYPE</th><th>AMT</th><th>NOTE</th><th></th></tr></thead><tbody id="feedLog"></tbody></table></div>
     </div>
   </div>
 
-  <div class="tab-content" id="tab-ai">
+  <div class="tab-content" id="ta">
     <div class="panel">
-      <div class="panel-title">🤖 AI HEALTH ANALYSIS — <span style="color:var(--purple)">Claude</span></div>
-      <div class="quick-prompts" id="detAiPrompts"></div>
+      <div class="panel-title">🤖 AI ANALYSIS — <span style="color:var(--purple)">Claude</span></div>
+      <div class="qprompts" id="detQP"></div>
       <div class="chat-wrap">
-        <div class="chat-messages" id="detAiChat"></div>
-        <div class="chat-input-row">
-          <textarea class="chat-input" id="detAiInput" placeholder="Ask about this crab..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDetAI()}"></textarea>
+        <div class="chat-msgs" id="detChat"></div>
+        <div class="chat-inp-row">
+          <textarea class="chat-inp" id="detAiInp" placeholder="Ask about this crab..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDetAI()}"></textarea>
           <button class="btn-p" onclick="sendDetAI()">ASK</button>
         </div>
       </div>
@@ -398,122 +633,92 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   </div>
 </div>
 
-<!-- ── ANALYTICS ── -->
+<!-- ── ANALYTICS ───────────────────────────────── -->
 <div class="page" id="pageAnalytics">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div style="font-size:14px;font-weight:bold">ANALYTICS & TRENDS</div>
-    <div style="display:flex;gap:8px">
-      <select id="analyticsDays" onchange="renderAnalytics()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 8px">
-        <option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
-      </select>
-    </div>
+    <select id="analyticsDays" onchange="renderAnalytics()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:11px;padding:5px 8px">
+      <option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
+    </select>
   </div>
   <div class="analytics-grid">
-    <div class="panel"><div class="panel-title">ALL COMPARTMENTS — WEIGHT TREND</div><div class="chart-wrap tall"><canvas id="chartAllWeight"></canvas></div></div>
-    <div class="panel"><div class="panel-title">AVERAGE DAILY GROWTH RATE (g/day)</div><div class="chart-wrap tall"><canvas id="chartGrowth"></canvas></div></div>
-    <div class="panel"><div class="panel-title">pH HISTORY</div><div class="chart-wrap"><canvas id="chartPh"></canvas></div></div>
-    <div class="panel"><div class="panel-title">SALINITY & TEMPERATURE HISTORY</div><div class="chart-wrap"><canvas id="chartSalTemp"></canvas></div></div>
+    <div class="panel"><div class="panel-title">ALL COMPARTMENTS — WEIGHT TREND</div><div class="chart-wrap h220"><canvas id="chartAllW" aria-label="All compartments weight trend"></canvas></div></div>
+    <div class="panel"><div class="panel-title">DAILY GROWTH RATE (g/day)</div><div class="chart-wrap h220"><canvas id="chartGrow" aria-label="Growth rate chart"></canvas></div></div>
+    <div class="panel"><div class="panel-title">pH HISTORY</div><div class="chart-wrap h180"><canvas id="chartPh" aria-label="pH history chart"></canvas></div></div>
+    <div class="panel"><div class="panel-title">SALINITY & TEMPERATURE</div><div class="chart-wrap h180"><canvas id="chartSalTmp" aria-label="Salinity and temperature chart"></canvas></div></div>
   </div>
   <div class="panel">
-    <div class="panel-title">HARVEST PREDICTION — TARGET 300g</div>
-    <div id="harvestTable"></div>
+    <div class="panel-title">HARVEST PREDICTION TABLE</div>
+    <div class="tbl-wrap" id="harvestTable"></div>
   </div>
 </div>
 
-<!-- ── FEEDING ── -->
+<!-- ── FEEDING ─────────────────────────────────── -->
 <div class="page" id="pageFeeding">
   <div style="font-size:14px;font-weight:bold;margin-bottom:16px">FEEDING LOG & SCHEDULE</div>
+  <div class="panel"><div class="panel-title">THIS WEEK</div><div class="feed-week" id="feedWeek"></div></div>
   <div class="panel">
-    <div class="panel-title">THIS WEEK — FEEDING STATUS</div>
-    <div class="feed-schedule" id="feedWeek"></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title">LOG BULK FEEDING (ALL COMPARTMENTS)</div>
+    <div class="panel-title">BULK LOG — ALL COMPARTMENTS</div>
     <div class="form-row c4" style="margin-bottom:0">
       <div class="fg"><label>DATE</label><input type="date" id="bFeedD"></div>
       <div class="fg"><label>FEED TYPE</label><select id="bFeedType"><option>Fresh fish</option><option>Pellets</option><option>Squid</option><option>Shrimp</option><option>Mixed</option></select></div>
-      <div class="fg"><label>AMOUNT EACH (g)</label><input type="number" id="bFeedAmt" placeholder="50"></div>
-      <div class="fg"><label>NOTE</label><input type="text" id="bFeedNote" placeholder="Optional..."></div>
-      <button class="btn-p" onclick="bulkFeed()">LOG ALL</button>
+      <div class="fg"><label>AMOUNT EACH (g)</label><input type="number" id="bFeedAmt" placeholder="50" inputmode="numeric"></div>
+      <div class="fg"><label>NOTE</label><input type="text" id="bFeedNote"></div>
+      <button class="btn-p" onclick="bulkFeed()">LOG ALL 10</button>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-title">RECENT FEEDING RECORDS</div>
-    <table class="tbl"><thead><tr><th>DATE</th><th>COMPARTMENT</th><th>FEED TYPE</th><th>AMOUNT</th><th>NOTE</th></tr></thead>
-    <tbody id="allFeedLog"></tbody></table>
-  </div>
+  <div class="panel"><div class="panel-title">RECENT RECORDS</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>DATE</th><th>COMPARTMENT</th><th>TYPE</th><th>AMOUNT</th><th>NOTE</th></tr></thead><tbody id="allFeedLog"></tbody></table></div></div>
 </div>
 
-<!-- ── ALERTS ── -->
+<!-- ── ALERTS ──────────────────────────────────── -->
 <div class="page" id="pageAlerts">
   <div style="font-size:14px;font-weight:bold;margin-bottom:16px">ALERTS & THRESHOLDS</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
     <div>
-      <div style="font-size:10px;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">ACTIVE ALERTS</div>
-      <div id="activeAlerts"><div style="color:var(--text3);font-size:12px;padding:20px;text-align:center">No active alerts</div></div>
+      <div class="sec-lbl">ACTIVE ALERTS</div>
+      <div id="activeAlerts"></div>
     </div>
     <div>
-      <div style="font-size:10px;color:var(--text3);letter-spacing:.08em;margin-bottom:10px">ALERT THRESHOLDS</div>
+      <div class="sec-lbl">THRESHOLD SETTINGS</div>
       <div class="th-grid">
-        <div class="th-card">
-          <div class="th-label" style="color:var(--teal)">pH LIMITS</div>
-          <div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thPhMin" value="7.0" step="0.1"></div><div class="fg"><label>MAX</label><input type="number" id="thPhMax" value="8.5" step="0.1"></div></div>
-        </div>
-        <div class="th-card">
-          <div class="th-label" style="color:var(--blue)">SALINITY (ppt)</div>
-          <div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thSalMin" value="10" step="0.5"></div><div class="fg"><label>MAX</label><input type="number" id="thSalMax" value="25" step="0.5"></div></div>
-        </div>
-        <div class="th-card">
-          <div class="th-label" style="color:var(--amber)">TEMPERATURE (°C)</div>
-          <div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thTmpMin" value="24" step="0.5"></div><div class="fg"><label>MAX</label><input type="number" id="thTmpMax" value="30" step="0.5"></div></div>
-        </div>
-        <div class="th-card">
-          <div class="th-label" style="color:var(--red)">WEIGHT ALERT (g)</div>
-          <div class="th-row"><div class="fg"><label>ALERT BELOW</label><input type="number" id="thWtAlert" value="100" step="1"></div><div class="fg"><label>WARN BELOW</label><input type="number" id="thWtWarn" value="130" step="1"></div></div>
-        </div>
+        <div class="th-card"><div class="th-lbl" style="color:var(--teal)">pH LIMITS</div><div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thPhMin" value="7.0" step="0.1" inputmode="decimal"></div><div class="fg"><label>MAX</label><input type="number" id="thPhMax" value="8.5" step="0.1" inputmode="decimal"></div></div></div>
+        <div class="th-card"><div class="th-lbl" style="color:var(--blue)">SALINITY (ppt)</div><div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thSalMin" value="10" step="0.5" inputmode="decimal"></div><div class="fg"><label>MAX</label><input type="number" id="thSalMax" value="25" step="0.5" inputmode="decimal"></div></div></div>
+        <div class="th-card"><div class="th-lbl" style="color:var(--amber)">TEMPERATURE (°C)</div><div class="th-row"><div class="fg"><label>MIN</label><input type="number" id="thTmpMin" value="24" step="0.5" inputmode="decimal"></div><div class="fg"><label>MAX</label><input type="number" id="thTmpMax" value="30" step="0.5" inputmode="decimal"></div></div></div>
+        <div class="th-card"><div class="th-lbl" style="color:var(--red)">WEIGHT ALERT (g)</div><div class="th-row"><div class="fg"><label>ALERT BELOW</label><input type="number" id="thWtAlert" value="100" inputmode="numeric"></div><div class="fg"><label>WARN BELOW</label><input type="number" id="thWtWarn" value="130" inputmode="numeric"></div></div></div>
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px">
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="btn-p" onclick="saveThresholds()">Save Thresholds</button>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer">
-          <input type="checkbox" id="soundAlerts" checked> Sound alerts
-        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox" id="soundAlerts" checked> Sound alerts</label>
       </div>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-title">ALERT HISTORY</div>
-    <table class="tbl"><thead><tr><th>TIME</th><th>SENSOR</th><th>VALUE</th><th>THRESHOLD</th><th>STATUS</th></tr></thead>
-    <tbody id="alertHistory"></tbody></table>
-  </div>
+  <div class="panel"><div class="panel-title">ALERT HISTORY</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>TIME</th><th>SENSOR</th><th>VALUE</th><th>THRESHOLD</th><th>LEVEL</th></tr></thead><tbody id="alertHistory"></tbody></table></div></div>
 </div>
 
-<!-- ── AI ASSISTANT ── -->
+<!-- ── AI ──────────────────────────────────────── -->
 <div class="page" id="pageAi">
   <div style="font-size:14px;font-weight:bold;margin-bottom:4px">🤖 AI HEALTH ASSISTANT</div>
-  <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Powered by Claude · Analyzes your live sensor data</div>
-  <div class="panel" style="margin-bottom:14px">
-    <div class="panel-title">QUICK ANALYSIS</div>
-    <div class="quick-prompts" id="globalAiPrompts"></div>
-  </div>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Powered by Claude · Analyzes live sensor + weight data</div>
+  <div class="panel" style="margin-bottom:14px"><div class="panel-title">QUICK ANALYSIS</div><div class="qprompts" id="globalQP"></div></div>
   <div class="panel">
     <div class="panel-title">CHAT WITH CLAUDE</div>
-    <div class="chat-wrap" style="height:480px">
-      <div class="chat-messages" id="globalAiChat"></div>
-      <div class="chat-input-row">
-        <textarea class="chat-input" id="globalAiInput" placeholder="Ask anything about your crab system..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGlobalAI()}"></textarea>
+    <div class="chat-wrap">
+      <div class="chat-msgs" id="globalChat" style="max-height:460px"></div>
+      <div class="chat-inp-row">
+        <textarea class="chat-inp" id="globalAiInp" placeholder="Ask anything about your crab system..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGlobalAI()}"></textarea>
         <button class="btn-p" onclick="sendGlobalAI()">ASK</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── REPORTS ── -->
+<!-- ── REPORTS ─────────────────────────────────── -->
 <div class="page" id="pageReports">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div style="font-size:14px;font-weight:bold">REPORTS</div>
     <div style="display:flex;gap:8px">
       <button class="btn-s" onclick="exportCSV()">⬇ CSV</button>
-      <button class="btn-p" onclick="exportExcel()">📊 Excel Report</button>
+      <button class="btn-p" onclick="exportExcel()">📊 Excel</button>
     </div>
   </div>
   <div id="reportContent"></div>
@@ -522,30 +727,50 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 </main>
 </div>
 
-<!-- ═══ CONFIG MODAL ════════════════════════════════════════ -->
+<!-- ═══ BOTTOM NAV (mobile) ══════════════════════════════ -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-items">
+    <button class="bn-item active" id="bn-overview" onclick="showPage('overview')"><span class="bn-icon">📊</span>Overview</button>
+    <button class="bn-item" id="bn-analytics" onclick="showPage('analytics')"><span class="bn-icon">📈</span>Trends</button>
+    <button class="bn-item" id="bn-feeding" onclick="showPage('feeding')"><span class="bn-icon">🦀</span>Feeding</button>
+    <button class="bn-item" id="bn-alerts" onclick="showPage('alerts')" style="position:relative"><span class="bn-icon">🔔</span>Alerts<span class="bn-dot" id="bnDot"></span></button>
+    <button class="bn-item" id="bn-ai" onclick="showPage('ai')"><span class="bn-icon">🤖</span>AI</button>
+  </div>
+</nav>
+
+<!-- ═══ QUICK ACTION BAR ══════════════════════════════════ -->
+<div class="quick-bar" id="quickBar">
+  <button class="qbar-btn" onclick="if(selectedComp>=0)switchTab(document.querySelector('#detTabs .tab'),('tw'));showDetail(selectedComp)">⚖ Log Weight</button>
+  <button class="qbar-btn" onclick="showPage('feeding')">🍤 Log Feed</button>
+  <button class="qbar-btn" onclick="manualRefresh()">↺ Refresh</button>
+  <button class="qbar-btn" onclick="showPage('ai')">🤖 Ask AI</button>
+  <button class="qbar-btn" onclick="exportCSV()">⬇ Export</button>
+</div>
+
+<!-- ═══ CONFIG MODAL ══════════════════════════════════════ -->
 <div class="overlay" id="cfgOverlay">
   <div class="modal">
     <div class="modal-title">System Configuration</div>
-    <div class="modal-sub">Connect to your ESP32 and Firebase database</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="modal-sub">Connect to your ESP32, Firebase, and Anthropic API</div>
+    <div class="modal-2col">
       <div>
-        <div style="font-size:10px;color:var(--teal);letter-spacing:.08em;margin-bottom:10px">ESP32 DIRECT</div>
-        <div class="mf"><label>ESP32 ENDPOINT</label><input id="cfgEsp" placeholder="http://192.168.1.x/data"><div class="mf-hint">Your ESP32 local IP</div></div>
-        <div class="mf"><label>POLL INTERVAL (sec)</label><input id="cfgInt" type="number" value="5" min="1"></div>
+        <div class="modal-col-lbl">ESP32 DIRECT</div>
+        <div class="mf"><label>ESP32 ENDPOINT</label><input id="cfgEsp" placeholder="http://192.168.1.x/data"><div class="mf-hint">Your ESP32 local IP address</div></div>
+        <div class="mf"><label>POLL INTERVAL (seconds)</label><input id="cfgInt" type="number" value="5" min="1"></div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--amber);letter-spacing:.08em;margin-bottom:10px">FIREBASE CLOUD</div>
-        <div class="mf"><label>FIREBASE URL</label><input id="cfgFbUrl" placeholder="https://your-project.firebaseio.com"><div class="mf-hint">Realtime Database URL</div></div>
-        <div class="mf"><label>FIREBASE PATH</label><input id="cfgFbPath" value="/crab_monitor/latest" placeholder="/crab_monitor/latest"></div>
+        <div class="modal-col-lbl" style="color:var(--amber)">FIREBASE CLOUD</div>
+        <div class="mf"><label>DATABASE URL</label><input id="cfgFbUrl" placeholder="https://your-project.firebaseio.com"><div class="mf-hint">Firebase Realtime Database URL</div></div>
+        <div class="mf"><label>DATA PATH</label><input id="cfgFbPath" value="/crab_monitor/latest"></div>
       </div>
     </div>
-    <div class="mf"><label>ANTHROPIC API KEY (for AI Assistant)</label><input id="cfgApiKey" type="password" placeholder="sk-ant-..."><div class="mf-hint">Get yours at console.anthropic.com</div></div>
-    <div class="mf"><label>CALIBRATION FACTOR (HX711)</label><input id="cfgCalib" type="number" value="420" step="0.1"></div>
+    <div class="mf"><label>ANTHROPIC API KEY</label><input id="cfgApiKey" type="password" placeholder="sk-ant-..."><div class="mf-hint">Get yours at console.anthropic.com — enables AI Assistant</div></div>
     <div class="mf"><label>TARGET HARVEST WEIGHT (g)</label><input id="cfgTarget" type="number" value="300" step="1"></div>
+    <div class="mf"><label>CALIBRATION FACTOR (HX711)</label><input id="cfgCalib" type="number" value="420" step="0.1"></div>
     <div class="json-box">
       <strong style="color:var(--teal)">ESP32 JSON FORMAT:</strong><br>
-      { "ph": 7.8, "salinity": 15.2, "temperature": 27.5,<br>
-      &nbsp;&nbsp;"weights": [182.1, 210.4, 145.0, 230.2, 198.5, 88.3, 175.9, 220.0, 160.4, 245.7] }
+      {"ph":7.8, "salinity":15.2, "temperature":27.5,<br>
+      "weights":[182.1,210.4,145.0,230.2,198.5,88.3,175.9,220.0,160.4,245.7]}
     </div>
     <div class="modal-btns">
       <button class="btn-s" onclick="closeConfig()">Cancel</button>
@@ -554,774 +779,742 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   </div>
 </div>
 
-<!-- ═══ ALERT POPUP ═════════════════════════════════════════ -->
-<div class="overlay" id="alertOverlay">
-  <div class="alert-modal">
-    <div style="font-size:16px;margin-bottom:8px">🚨 ALERT</div>
-    <div id="alertPopupMsg" style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6"></div>
-    <button class="btn-p" onclick="document.getElementById('alertOverlay').classList.remove('open')">Acknowledge</button>
-  </div>
-</div>
-
 <div id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// CONSTANTS & CONFIG
+// ════════════════════════════════════════════════
 const N = 10;
 const COLORS = ['#00D4AA','#3B82F6','#F59E0B','#A855F7','#EF4444','#06B6D4','#84CC16','#F97316','#EC4899','#8B5CF6'];
 
 const cfg = {
-  esp: localStorage.getItem('esp_url')||'',
-  fbUrl: localStorage.getItem('fb_url')||'',
-  fbPath: localStorage.getItem('fb_path')||'/crab_monitor/latest',
-  apiKey: localStorage.getItem('api_key')||'',
-  interval: parseInt(localStorage.getItem('esp_int')||'5'),
-  calib: parseFloat(localStorage.getItem('calib')||'420'),
-  target: parseFloat(localStorage.getItem('target')||'300'),
+  esp: ls('esp_url',''),
+  fbUrl: ls('fb_url',''),
+  fbPath: ls('fb_path','/crab_monitor/latest'),
+  apiKey: ls('api_key',''),
+  interval: parseInt(ls('esp_int','5')),
+  calib: parseFloat(ls('calib','420')),
+  target: parseFloat(ls('target','300')),
 };
 
-const thresholds = {
-  phMin:parseFloat(localStorage.getItem('th_phMin')||'7.0'),
-  phMax:parseFloat(localStorage.getItem('th_phMax')||'8.5'),
-  salMin:parseFloat(localStorage.getItem('th_salMin')||'10'),
-  salMax:parseFloat(localStorage.getItem('th_salMax')||'25'),
-  tmpMin:parseFloat(localStorage.getItem('th_tmpMin')||'24'),
-  tmpMax:parseFloat(localStorage.getItem('th_tmpMax')||'30'),
-  wtAlert:parseFloat(localStorage.getItem('th_wtAlert')||'100'),
-  wtWarn:parseFloat(localStorage.getItem('th_wtWarn')||'130'),
+const th = {
+  phMin:parseFloat(ls('th_phMin','7.0')),phMax:parseFloat(ls('th_phMax','8.5')),
+  salMin:parseFloat(ls('th_salMin','10')),salMax:parseFloat(ls('th_salMax','25')),
+  tmpMin:parseFloat(ls('th_tmpMin','24')),tmpMax:parseFloat(ls('th_tmpMax','30')),
+  wtAlert:parseFloat(ls('th_wtAlert','100')),wtWarn:parseFloat(ls('th_wtWarn','130')),
 };
 
-let sensors = { ph:7.8, salinity:15.0, temperature:27.5 };
-let sensorHistory = JSON.parse(localStorage.getItem('sensorHistory')||'[]');
-let compartments = loadCompartments();
-let alertLog = JSON.parse(localStorage.getItem('alertLog')||'[]');
-let pollTimer = null;
+let sensors = {ph:7.8,salinity:15.0,temperature:27.5};
+let sensorHistory = JSON.parse(ls('sensorHist','[]'));
+let alertLog = JSON.parse(ls('alertLog','[]'));
+let compartments = loadComps();
 let selectedComp = 0;
+let pollTimer = null;
 let detChart = null;
-
-// Chart instances
 const charts = {};
+const globalChatHist = [], detChatHist = [];
 
-function loadCompartments() {
-  const saved = localStorage.getItem('comps_v2');
-  if (saved) return JSON.parse(saved);
+function ls(k,d){ try{const v=localStorage.getItem(k);return v!==null?v:d;}catch(e){return d;} }
+function lsSave(k,v){ try{localStorage.setItem(k,String(v));}catch(e){} }
+
+// ════════════════════════════════════════════════
+// DATA INIT
+// ════════════════════════════════════════════════
+function loadComps(){
+  try{const s=localStorage.getItem('comps_v3');if(s)return JSON.parse(s);}catch(e){}
   return Array.from({length:N},(_,i)=>({
     id:`C${String(i+1).padStart(2,'0')}`,
     name:`Mud Crab #${i+1}`,
-    weight: 150+Math.random()*100,
-    initWeight: 140+Math.random()*40,
-    history: genHistory(150+Math.random()*100, 140+Math.random()*40),
-    obsLog: [],
-    feedLog: [],
-    status:'ok',
+    weight:parseFloat((150+Math.random()*120).toFixed(1)),
+    initWeight:parseFloat((130+Math.random()*40).toFixed(1)),
+    history:genHistory(),
+    obsLog:[],feedLog:[],status:'ok',
   }));
 }
 
-function genHistory(cur, init) {
-  const today = new Date();
+function genHistory(){
+  const today=new Date();
+  const start=130+Math.random()*40;
+  const end=150+Math.random()*120;
   return Array.from({length:14},(_,i)=>{
-    const d = new Date(today); d.setDate(d.getDate()-(13-i));
-    const frac = i/13;
+    const d=new Date(today);d.setDate(d.getDate()-(13-i));
+    const frac=i/13;
     return {
       date:d.toISOString().split('T')[0],
       time:'08:00',
-      weight:parseFloat((init+(cur-init)*frac+(Math.random()*3-1.5)).toFixed(1)),
-      note: i===0?'Initial':'',
-      source:'demo',
+      weight:parseFloat((start+(end-start)*frac+(Math.random()*3-1.5)).toFixed(1)),
+      note:i===0?'Initial':'',source:'demo',
     };
   });
 }
 
-function saveComps() { localStorage.setItem('comps_v2',JSON.stringify(compartments)); }
+function saveComps(){try{localStorage.setItem('comps_v3',JSON.stringify(compartments));}catch(e){}}
+function updateStatus(c){c.status=c.weight<th.wtAlert?'alrt':c.weight<th.wtWarn?'warn':'ok';}
 
-// ═══════════════════════════════════════════════════════════
-// CLOCK & INIT
-// ═══════════════════════════════════════════════════════════
-function tick() {
-  document.getElementById('topTime').textContent =
+// ════════════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════════════
+let darkMode = ls('theme','dark')==='dark';
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');
+  document.getElementById('themeBtn').textContent=darkMode?'🌙':'☀️';
+  lsSave('theme',darkMode?'dark':'light');
+  const metaTheme=document.querySelector('meta[name="theme-color"]');
+  if(metaTheme) metaTheme.setAttribute('content',darkMode?'#0A1628':'#F0F4F8');
+  Object.values(charts).forEach(c=>{try{c.update();}catch(e){}});
+  if(detChart)try{detChart.update();}catch(e){}
+}
+function toggleTheme(){darkMode=!darkMode;applyTheme();}
+applyTheme();
+
+// ════════════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════════════
+function tick(){
+  document.getElementById('topTime').textContent=
     new Date().toLocaleString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' PHT';
 }
-setInterval(tick,1000); tick();
+setInterval(tick,1000);tick();
 
-// ═══════════════════════════════════════════════════════════
-// SIDEBAR
-// ═══════════════════════════════════════════════════════════
-function renderSidebar() {
-  // Sensors
-  const sb = document.getElementById('sbSensors');
-  sb.innerHTML = `<div class="sb-sec-label">WATER PARAMETERS</div>` +
-    sensorBlock('pH LEVEL', sensors.ph.toFixed(2), 'pH', ((sensors.ph-6)/3*100).toFixed(0), 'var(--teal)', '6.0','9.0', sensors.ph>=thresholds.phMin&&sensors.ph<=thresholds.phMax?'ok':sensors.ph<thresholds.phMin-0.3||sensors.ph>thresholds.phMax+0.3?'err':'warn', 'ph') +
-    sensorBlock('SALINITY', sensors.salinity.toFixed(1), 'ppt', (sensors.salinity/35*100).toFixed(0), 'var(--blue)', '0','35 ppt', sensors.salinity>=thresholds.salMin&&sensors.salinity<=thresholds.salMax?'ok':sensors.salinity<thresholds.salMin-3||sensors.salinity>thresholds.salMax+3?'err':'warn', 'sal') +
-    sensorBlock('TEMPERATURE', sensors.temperature.toFixed(1), '°C', ((sensors.temperature-20)/20*100).toFixed(0), 'var(--amber)', '20°','40°', sensors.temperature>=thresholds.tmpMin&&sensors.temperature<=thresholds.tmpMax?'ok':sensors.temperature<thresholds.tmpMin-2||sensors.temperature>thresholds.tmpMax+2?'err':'warn', 'tmp');
+// ════════════════════════════════════════════════
+// SIDEBAR TOGGLE (mobile)
+// ════════════════════════════════════════════════
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sbOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('show');
+}
 
-  // Comp list
-  document.getElementById('sbCompList').innerHTML = `<div class="sb-sec-label">COMPARTMENTS</div>` +
+// ════════════════════════════════════════════════
+// SIDEBAR RENDER
+// ════════════════════════════════════════════════
+function renderSidebar(){
+  // Sensor blocks
+  const {ph,salinity:sal,temperature:tmp}=sensors;
+  const phOk=ph>=th.phMin&&ph<=th.phMax;
+  const phWarn=(ph>=th.phMin-0.5&&ph<th.phMin)||(ph>th.phMax&&ph<=th.phMax+0.5);
+  const salOk=sal>=th.salMin&&sal<=th.salMax;
+  const tmpOk=tmp>=th.tmpMin&&tmp<=th.tmpMax;
+  const phSt=phOk?'ok':phWarn?'warn':'err';
+  const salSt=salOk?'ok':'err';
+  const tmpSt=tmpOk?'ok':'warn';
+
+  document.getElementById('sbSensors').innerHTML=`<div class="sb-lbl">WATER PARAMETERS</div>`+
+    mkSensorBlk('ph','pH LEVEL',ph.toFixed(2),'pH',((ph-6)/3*100).toFixed(0),'var(--teal)','6.0','9.0',phSt)+
+    mkSensorBlk('sal','SALINITY',sal.toFixed(1),'ppt',(sal/35*100).toFixed(0),'var(--blue)','0','35',salSt)+
+    mkSensorBlk('tmp','TEMPERATURE',tmp.toFixed(1),'°C',((tmp-20)/20*100).toFixed(0),'var(--amber)','20°','40°',tmpSt);
+
+  document.getElementById('sbCompList').innerHTML=`<div class="sb-lbl">COMPARTMENTS</div>`+
     compartments.map((c,i)=>{
-      const dc = c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)';
-      return `<div class="cl-item${i===selectedComp&&document.getElementById('pageDetail').classList.contains('active')?' active':''}" onclick="showDetail(${i})">
+      const dc=c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)';
+      const isDetail=document.getElementById('pageDetail').classList.contains('active');
+      return `<div class="cl-item${isDetail&&i===selectedComp?' active':''}" onclick="showDetail(${i});closeSidebar()">
         <span class="cl-dot" style="background:${dc}"></span>
         <span class="cl-name">${c.id}</span>
-        <span class="cl-w">${parseFloat(c.weight).toFixed(1)}g</span>
+        <span class="cl-w">${c.weight.toFixed(1)}g</span>
       </div>`;
     }).join('');
 }
 
-function sensorBlock(label, val, unit, pct, color, rMin, rMax, status, cls) {
-  const alrt = status==='err';
-  return `<div class="sensor-block ${cls}${alrt?' alert-sensor':''}">
-    <div class="sb-label">${label}</div>
-    <div class="sb-val">${val}<span class="sb-unit">${unit}</span></div>
+function mkSensorBlk(cls,label,val,unit,pct,color,rMin,rMax,status){
+  const al=status==='err';
+  return `<div class="sensor-blk ${cls}${al?' alerted':''}">
+    <div class="sb-slbl">${label}</div>
+    <div class="sb-sval">${val}<span class="sb-sunit">${unit}</span></div>
     <div class="sb-bar"><div class="sb-bar-fill" style="width:${Math.min(100,Math.max(0,pct))}%;background:${color}"></div></div>
     <div class="sb-range"><span>${rMin}</span><span>${rMax}</span></div>
-    <span class="sb-badge ${status}">${status==='ok'?'OPTIMAL':status==='warn'?'WARNING':'ALERT'}</span>
+    <span class="sbadge ${status}">${status==='ok'?'OPTIMAL':status==='warn'?'WARNING':'ALERT'}</span>
   </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // PAGE NAVIGATION
-// ═══════════════════════════════════════════════════════════
-function showPage(name) {
+// ════════════════════════════════════════════════
+function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.sb-nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
-  const nav = document.getElementById('nav-'+name);
-  if(nav) nav.classList.add('active');
-  if(name==='overview') renderOverview();
-  if(name==='analytics') renderAnalytics();
-  if(name==='feeding') renderFeedingPage();
-  if(name==='alerts') renderAlertsPage();
-  if(name==='ai') renderAIPage();
-  if(name==='reports') renderReports();
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page'+name[0].toUpperCase()+name.slice(1)).classList.add('active');
+  const sn=document.getElementById('nav-'+name);if(sn)sn.classList.add('active');
+  const bn=document.getElementById('bn-'+name);if(bn)bn.classList.add('active');
+  closeSidebar();
+  if(name==='overview')renderOverview();
+  if(name==='analytics')renderAnalytics();
+  if(name==='feeding')renderFeedingPage();
+  if(name==='alerts')renderAlertsPage();
+  if(name==='ai')renderAIPage();
+  if(name==='reports')renderReports();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // OVERVIEW
-// ═══════════════════════════════════════════════════════════
-function renderOverview() {
-  const weights = compartments.map(c=>c.weight);
-  const gains = compartments.map(c=>c.weight-c.initWeight);
-  const avg = weights.reduce((a,b)=>a+b,0)/N;
-  const avgGain = gains.reduce((a,b)=>a+b,0)/N;
-  const alerts = compartments.filter(c=>c.status==='alert').length;
-  const warns = compartments.filter(c=>c.status==='warn').length;
-  const growthRates = compartments.map(c=>{
-    if(c.history.length<2) return 0;
-    const days = (new Date(c.history[c.history.length-1].date)-new Date(c.history[0].date))/(1000*86400)||1;
-    return (c.weight-c.initWeight)/days;
-  });
-  const avgRate = growthRates.reduce((a,b)=>a+b,0)/N;
+// ════════════════════════════════════════════════
+function renderOverview(){
+  const ws=compartments.map(c=>c.weight);
+  const gs=compartments.map(c=>c.weight-c.initWeight);
+  const avg=ws.reduce((a,b)=>a+b,0)/N;
+  const avgG=gs.reduce((a,b)=>a+b,0)/N;
+  const alrts=compartments.filter(c=>c.status==='alrt').length;
+  const warns=compartments.filter(c=>c.status==='warn').length;
+  const rates=compartments.map(growthRate);
+  const avgRate=rates.reduce((a,b)=>a+b,0)/N;
 
-  document.getElementById('statRow').innerHTML = [
-    ['TOTAL WEIGHT','c-teal', (weights.reduce((a,b)=>a+b,0)/1000).toFixed(2),'kg','All 10 compartments'],
-    ['AVG WEIGHT','c-blue', avg.toFixed(1),'g','Per compartment'],
-    ['AVG GAIN','c-teal', (avgGain>=0?'+':'')+avgGain.toFixed(1),'g','From initial'],
-    ['GROWTH RATE','c-purple', avgRate.toFixed(2),'g/day','Average'],
-    ['ALERTS','c-red', alerts+warns,'',`${alerts} alert${alerts!==1?'s':''}, ${warns} warn`],
+  // Animated stat cards
+  document.getElementById('statRow').innerHTML=[
+    ['TOTAL BIOMASS','c-teal',(ws.reduce((a,b)=>a+b,0)/1000).toFixed(2),'kg','All 10 compartments'],
+    ['AVG WEIGHT','c-blue',avg.toFixed(1),'g','Per compartment'],
+    ['AVG GAIN','c-teal',(avgG>=0?'+':'')+avgG.toFixed(1),'g','From initial'],
+    ['GROWTH RATE','c-purple',avgRate.toFixed(2),'g/day','Average daily'],
+    ['ALERTS','c-red',alrts+warns,'',alrts+warns===0?'All OK':`${alrts} alert, ${warns} warn`],
   ].map(([l,c,v,u,s])=>`<div class="stat-card ${c}"><div class="stat-lbl">${l}</div><div class="stat-val">${v}<span class="stat-unit">${u}</span></div><div class="stat-sub">${s}</div></div>`).join('');
 
-  // Harvest prediction row
-  document.getElementById('harvestRow').innerHTML = compartments.map(c=>{
-    const rate = c.history.length>2?(c.weight-c.history[Math.max(0,c.history.length-8)].weight)/Math.min(7,c.history.length-1):0.5;
-    const rem = rate>0?(cfg.target-c.weight)/rate:999;
-    const pct = Math.min(100,(c.weight/cfg.target)*100);
-    const ready = c.weight>=cfg.target;
+  // Harvest row
+  document.getElementById('harvestRow').innerHTML=compartments.map(c=>{
+    const rate=growthRate(c);
+    const rem=rate>0?(cfg.target-c.weight)/rate:999;
+    const pct=Math.min(100,(c.weight/cfg.target)*100);
+    const ready=c.weight>=cfg.target;
     return `<div class="hv-card">
       <div class="hv-id">${c.id}</div>
-      <div class="hv-days ${ready?'hv-ready':''}">${ready?'✓ READY':Math.round(rem)}</div>
-      <div class="hv-lbl">${ready?'harvest now':'days left'}</div>
-      <div class="hv-bar"><div class="hv-bar-fill" style="width:${pct}%;background:${ready?'var(--teal)':'var(--purple)'}"></div></div>
+      <div class="hv-days" style="color:${ready?'var(--teal)':'var(--purple)'}">${ready?'✓':Math.max(0,Math.round(rem))}</div>
+      <div class="hv-lbl">${ready?'READY':'days left'}</div>
+      <div class="hv-bar"><div class="hv-bar-fill" style="width:${pct.toFixed(0)}%;background:${ready?'var(--teal)':'var(--purple)'}"></div></div>
     </div>`;
   }).join('');
 
   // Comp grid
-  document.getElementById('compGrid').innerHTML = compartments.map((c,i)=>{
-    const fp = Math.min(95,Math.max(5,(c.weight/cfg.target)*100));
-    const gain = c.weight-c.initWeight;
-    const wc = c.status==='ok'?'tw-ok':c.status==='warn'?'tw-warn':'tw-alert';
-    const cc = c.status==='warn'?' warn-card':c.status==='alert'?' alert-card':'';
-    return `<div class="comp-card${cc}${i===selectedComp?' sel-card':''}" onclick="showDetail(${i})">
-      <div class="cc-hdr"><span class="cc-id">${c.id}</span><span class="cc-dot" style="background:${c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)'}"></span></div>
-      <div class="tank"><div class="tank-water ${wc}" style="height:${fp}%"></div><div class="tank-lbl">${parseFloat(c.weight).toFixed(1)}g</div></div>
+  document.getElementById('compGrid').innerHTML=compartments.map((c,i)=>{
+    const fp=Math.min(95,Math.max(5,(c.weight/cfg.target)*100));
+    const gain=c.weight-c.initWeight;
+    const wc=c.status==='ok'?'tw-ok':c.status==='warn'?'tw-warn':'tw-alrt';
+    const cc=c.status==='warn'?' warn':c.status==='alrt'?' alrt':'';
+    const dc=c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)';
+    return `<div class="comp-card${cc}" onclick="showDetail(${i})">
+      <div class="cc-hdr"><span class="cc-id">${c.id}</span><span class="cc-dot" style="background:${dc}"></span></div>
+      <div class="tank"><div class="tank-water ${wc}" style="height:${fp.toFixed(0)}%"></div><div class="tank-lbl">${c.weight.toFixed(1)}g</div></div>
       <div class="cc-name">${c.name}</div>
       <div class="cc-gain" style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g total</div>
     </div>`;
   }).join('');
 
   renderSidebar();
+  checkAlerts();
 }
 
-// ═══════════════════════════════════════════════════════════
-// DETAIL
-// ═══════════════════════════════════════════════════════════
-function showDetail(i) {
-  selectedComp = i;
+function growthRate(c){
+  const recent=c.history.filter(h=>{const d=new Date(h.date);const cut=new Date();cut.setDate(cut.getDate()-7);return d>=cut;});
+  if(recent.length<2)return 0;
+  return parseFloat(((recent[recent.length-1].weight-recent[0].weight)/Math.max(1,recent.length-1)).toFixed(2));
+}
+
+// ════════════════════════════════════════════════
+// DETAIL PAGE
+// ════════════════════════════════════════════════
+function showDetail(i){
+  selectedComp=i;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('pageDetail').classList.add('active');
   document.querySelectorAll('.sb-nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pageDetail').classList.add('active');
+  closeSidebar();
   renderDetail();
   renderSidebar();
+  initSwipe();
 }
 
-function renderDetail() {
-  const c = compartments[selectedComp];
-  document.getElementById('detTitle').textContent = `${c.id} — ${c.name}`;
-  document.getElementById('detSub').textContent = `Compartment ${selectedComp+1} of ${N} · HX711 Load Cell · ESP32`;
+function renderDetail(){
+  const c=compartments[selectedComp];
+  document.getElementById('detTitle').textContent=`${c.id} — ${c.name}`;
+  document.getElementById('detSub').textContent=`Compartment ${selectedComp+1} of ${N} · HX711 Load Cell · ESP32`;
 
-  const gain = c.weight-c.initWeight;
-  const rate = c.history.length>2?(c.weight-c.history[Math.max(0,c.history.length-8)].weight)/Math.min(7,c.history.length-1):0;
-  const daysToHarvest = rate>0?Math.round((cfg.target-c.weight)/rate):null;
+  const gain=c.weight-c.initWeight;
+  const rate=growthRate(c);
+  const rem=rate>0?Math.ceil((cfg.target-c.weight)/rate):null;
+  const ready=c.weight>=cfg.target;
 
-  document.getElementById('detMetrics').innerHTML = [
-    ['CURRENT WEIGHT',parseFloat(c.weight).toFixed(1),'g',c.weight>=cfg.target?'✓ Harvest ready':'','var(--teal)'],
-    ['INITIAL WEIGHT',parseFloat(c.initWeight).toFixed(1),'g','Baseline','var(--text)'],
+  document.getElementById('detMetrics').innerHTML=[
+    ['CURRENT WEIGHT',c.weight.toFixed(1),'g',c.weight>=cfg.target?'✓ Harvest ready':rate.toFixed(2)+'g/day growth','var(--teal)'],
+    ['INITIAL WEIGHT',c.initWeight.toFixed(1),'g','Baseline','var(--text)'],
     ['TOTAL GAIN',(gain>=0?'+':'')+gain.toFixed(1),'g',((gain/c.initWeight*100).toFixed(1))+'% growth',gain>=0?'var(--teal)':'var(--red)'],
-    ['HARVEST ETA',daysToHarvest!==null?(c.weight>=cfg.target?'READY':daysToHarvest):'N/A',daysToHarvest&&c.weight<cfg.target?' days':'','Target: '+cfg.target+'g','var(--purple)'],
+    ['HARVEST ETA',ready?'READY':rem?rem:'—',ready?'':rem?' days':'','Target: '+cfg.target+'g','var(--purple)'],
   ].map(([l,v,u,s,col])=>`<div class="met-card"><div class="met-lbl">${l}</div><div class="met-val" style="color:${col}">${v}<span class="met-unit">${u}</span></div><div class="met-sub">${s}</div></div>`).join('');
 
-  // Weight chart
   renderDetailChart();
   renderWeightLog();
   renderObsLog();
   renderFeedLogDet();
 
-  // Set date/time defaults
-  const now = new Date();
-  ['inD','obsD','feedD'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=now.toISOString().split('T')[0]; });
-  const t = now.toTimeString().slice(0,5);
-  const ti = document.getElementById('inT'); if(ti) ti.value=t;
+  const now=new Date();
+  ['inD','obsD','feedD'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=now.toISOString().split('T')[0];});
+  const ti=document.getElementById('inT');if(ti)ti.value=now.toTimeString().slice(0,5);
 
-  // AI quick prompts for detail
-  document.getElementById('detAiPrompts').innerHTML = [
+  document.getElementById('detQP').innerHTML=[
     `Why is ${c.id} growing slowly?`,
-    `Health assessment for ${c.id}`,
-    `Feeding recommendation for ${c.id}`,
+    `Health check for ${c.id}`,
+    `Feed recommendation for ${c.id}`,
     `Is ${c.id} ready to harvest?`,
-  ].map(p=>`<span class="qp" onclick="askDetAI('${p}')">${p}</span>`).join('');
+  ].map(p=>`<button class="qp" onclick="askDetAI('${p}')">${p}</button>`).join('');
 }
 
-function renderDetailChart() {
-  const c = compartments[selectedComp];
-  const ctx = document.getElementById('detChart').getContext('2d');
-  if(detChart) detChart.destroy();
-  detChart = new Chart(ctx,{
+function renderDetailChart(){
+  const c=compartments[selectedComp];
+  const ctx=document.getElementById('detChart').getContext('2d');
+  if(detChart)detChart.destroy();
+  detChart=new Chart(ctx,{
     type:'line',
     data:{
       labels:c.history.map(h=>h.date.slice(5)),
-      datasets:[{
-        label:'Weight (g)',
-        data:c.history.map(h=>h.weight),
-        borderColor:'#00D4AA',backgroundColor:'rgba(0,212,170,0.07)',
-        fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:'#00D4AA',
-        pointBorderColor:'#0A1628',pointBorderWidth:2,borderWidth:2,
-      },{
-        label:'Target',
-        data:c.history.map(()=>cfg.target),
-        borderColor:'rgba(168,85,247,0.5)',borderDash:[5,5],
-        borderWidth:1,pointRadius:0,fill:false,
-      }]
+      datasets:[
+        {label:'Weight (g)',data:c.history.map(h=>h.weight),borderColor:'#00D4AA',backgroundColor:'rgba(0,212,170,.07)',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:'#00D4AA',pointBorderColor:darkMode?'#0A1628':'#fff',pointBorderWidth:2,borderWidth:2},
+        {label:`Target ${cfg.target}g`,data:c.history.map(()=>cfg.target),borderColor:'rgba(168,85,247,.5)',borderDash:[5,5],borderWidth:1,pointRadius:0,fill:false},
+      ]
     },
-    options:chartOpts('g')
+    options:chartOpts('g'),
   });
 }
 
-function chartOpts(unit='') {
-  return {
+function chartOpts(unit=''){
+  const tc=darkMode?'#4A7090':'#7A95A8';
+  const gc=darkMode?'rgba(255,255,255,.04)':'rgba(0,0,0,.05)';
+  return{
     responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{labels:{color:'#4A7090',font:{size:10,family:'Courier New'},boxWidth:12}},
-      tooltip:{backgroundColor:'#0F1E38',borderColor:'rgba(0,212,170,.3)',borderWidth:1,titleColor:'#8BAFC4',bodyColor:'#E8F4F1'}},
+    plugins:{
+      legend:{labels:{color:tc,font:{size:10,family:'Courier New'},boxWidth:12}},
+      tooltip:{backgroundColor:darkMode?'#0F1E38':'#fff',borderColor:darkMode?'rgba(0,212,170,.3)':'rgba(0,0,0,.1)',borderWidth:1,titleColor:tc,bodyColor:darkMode?'#E8F4F1':'#0D1B2A'},
+    },
     scales:{
-      x:{ticks:{color:'#4A7090',font:{size:10,family:'Courier New'},maxRotation:30},grid:{color:'rgba(255,255,255,.04)'}},
-      y:{ticks:{color:'#4A7090',font:{size:10,family:'Courier New'},callback:v=>v+unit},grid:{color:'rgba(255,255,255,.04)'}},
+      x:{ticks:{color:tc,font:{size:10,family:'Courier New'},maxRotation:30},grid:{color:gc}},
+      y:{ticks:{color:tc,font:{size:10,family:'Courier New'},callback:v=>v+unit},grid:{color:gc}},
+    },
+  };
+}
+
+function mkChart(id,cfgObj){
+  if(charts[id])charts[id].destroy();
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx.getContext('2d'),cfgObj);
+}
+
+function renderWeightLog(){
+  const c=compartments[selectedComp];
+  const sorted=[...c.history].reverse();
+  document.getElementById('weightLog').innerHTML=sorted.map((h,i)=>{
+    const prev=sorted[i+1];
+    const diff=prev?h.weight-prev.weight:null;
+    return `<tr>
+      <td class="td-m">${h.date}</td><td class="td-m">${h.time||'—'}</td>
+      <td class="td-m">${h.weight.toFixed(1)}g</td>
+      <td>${diff!==null?`<span style="color:${diff>=0?'var(--teal)':'var(--red)'}">${diff>=0?'+':''}${diff.toFixed(1)}g</span>`:'—'}</td>
+      <td style="color:var(--text3)">${h.note||''}</td>
+      <td><button onclick="delWeight(${c.history.length-1-i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 6px">✕</button></td>
+    </tr>`;
+  }).join('')||noDataRow(6);
+}
+
+function renderObsLog(){
+  const c=compartments[selectedComp];
+  document.getElementById('obsLog').innerHTML=(c.obsLog||[]).slice().reverse().map((o,i)=>
+    `<tr><td class="td-m">${o.date}</td><td style="color:var(--teal)">${o.type}</td><td style="color:var(--text2)">${o.note}</td>
+    <td><button onclick="delObs(${(c.obsLog.length-1-i)})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 6px">✕</button></td></tr>`
+  ).join('')||noDataRow(4);
+}
+
+function renderFeedLogDet(){
+  const c=compartments[selectedComp];
+  document.getElementById('feedLog').innerHTML=(c.feedLog||[]).slice().reverse().map((f,i)=>
+    `<tr><td class="td-m">${f.date}</td><td style="color:var(--amber)">${f.type}</td><td class="td-m">${f.amount}g</td><td style="color:var(--text3)">${f.note||''}</td>
+    <td><button onclick="delFeed(${(c.feedLog.length-1-i)})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 6px">✕</button></td></tr>`
+  ).join('')||noDataRow(5);
+}
+
+function noDataRow(cols){return`<tr><td colspan="${cols}" style="color:var(--text3);text-align:center;padding:16px">No entries yet</td></tr>`;}
+
+function prevComp(){selectedComp=(selectedComp-1+N)%N;renderDetail();renderSidebar();}
+function nextComp(){selectedComp=(selectedComp+1)%N;renderDetail();renderSidebar();}
+
+function switchTab(el,id){
+  el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const tc=document.getElementById(id);if(tc)tc.classList.add('active');
+}
+
+// SWIPE
+function initSwipe(){
+  const el=document.getElementById('pageDetail');
+  let sx=0,sy=0;
+  el.ontouchstart=e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;};
+  el.ontouchend=e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){
+      if(dx<0)nextComp();else prevComp();
+      showToast(dx<0?`→ ${compartments[selectedComp].id}`:`← ${compartments[selectedComp].id}`);
     }
   };
 }
 
-function renderWeightLog() {
-  const c = compartments[selectedComp];
-  const sorted = [...c.history].reverse();
-  document.getElementById('weightLog').innerHTML = sorted.map((h,i)=>{
-    const prev = sorted[i+1];
-    const diff = prev?h.weight-prev.weight:null;
-    return `<tr><td class="td-m">${h.date}</td><td class="td-m">${h.time||'—'}</td>
-      <td class="td-m">${parseFloat(h.weight).toFixed(1)}g</td>
-      <td>${diff!==null?`<span style="color:${diff>=0?'var(--teal)':'var(--red)'}">${diff>=0?'+':''}${diff.toFixed(1)}g</span>`:'—'}</td>
-      <td style="color:var(--text3)">${h.note||''}</td>
-      <td><button onclick="delWeight(${c.history.length-1-i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px">✕</button></td></tr>`;
-  }).join('')||'<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No entries</td></tr>';
-}
-
-function renderObsLog() {
-  const c = compartments[selectedComp];
-  document.getElementById('obsLog').innerHTML = (c.obsLog||[]).slice().reverse().map((o,i)=>
-    `<tr><td class="td-m">${o.date}</td><td style="color:var(--teal)">${o.type}</td><td style="color:var(--text2)">${o.note}</td>
-    <td><button onclick="delObs(${(c.obsLog.length-1-i)})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px">✕</button></td></tr>`
-  ).join('')||'<tr><td colspan="4" style="color:var(--text3);text-align:center;padding:16px">No observations</td></tr>';
-}
-
-function renderFeedLogDet() {
-  const c = compartments[selectedComp];
-  document.getElementById('feedLog').innerHTML = (c.feedLog||[]).slice().reverse().map((f,i)=>
-    `<tr><td class="td-m">${f.date}</td><td style="color:var(--amber)">${f.type}</td><td class="td-m">${f.amount}g</td><td style="color:var(--text3)">${f.note||''}</td>
-    <td><button onclick="delFeed(${(c.feedLog.length-1-i)})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px">✕</button></td></tr>`
-  ).join('')||'<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No feeding records</td></tr>';
-}
-
-function prevComp() { selectedComp=(selectedComp-1+N)%N; renderDetail(); renderSidebar(); }
-function nextComp() { selectedComp=(selectedComp+1)%N; renderDetail(); renderSidebar(); }
-
-function switchTab(el, id) {
-  el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById(id).classList.add('active');
-}
-
-// Logging
-function logWeight() {
+// LOG FUNCTIONS
+function logWeight(){
   const w=parseFloat(document.getElementById('inW').value);
-  if(!w||isNaN(w)) { showToast('Enter a valid weight','warn'); return; }
+  if(!w||isNaN(w)){showToast('Enter a valid weight','warn');return;}
   const c=compartments[selectedComp];
-  const entry={date:document.getElementById('inD').value,time:document.getElementById('inT').value,weight:w,note:document.getElementById('inN').value,source:'manual'};
-  c.history.push(entry); c.history.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-  c.weight=w; updateStatus(c); saveComps();
-  document.getElementById('inW').value=''; document.getElementById('inN').value='';
-  renderDetail(); renderSidebar();
-  showToast(`Logged ${w}g for ${c.id}`);
+  c.history.push({date:document.getElementById('inD').value,time:document.getElementById('inT').value,weight:w,note:document.getElementById('inN').value,source:'manual'});
+  c.history.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  c.weight=w;updateStatus(c);saveComps();
+  document.getElementById('inW').value='';document.getElementById('inN').value='';
+  renderDetail();renderSidebar();
+  showToast(`✓ Logged ${w.toFixed(1)}g for ${c.id}`);
 }
 
-function logObs() {
+function logObs(){
   const note=document.getElementById('obsNote').value.trim();
-  if(!note) { showToast('Enter a note','warn'); return; }
+  if(!note){showToast('Enter a note','warn');return;}
   const c=compartments[selectedComp];
-  if(!c.obsLog) c.obsLog=[];
+  if(!c.obsLog)c.obsLog=[];
   c.obsLog.push({date:document.getElementById('obsD').value,type:document.getElementById('obsType').value,note});
-  saveComps(); document.getElementById('obsNote').value='';
-  renderObsLog(); showToast('Observation logged');
+  saveComps();document.getElementById('obsNote').value='';
+  renderObsLog();showToast('Observation logged');
 }
 
-function logFeed() {
+function logFeed(){
   const amt=parseFloat(document.getElementById('feedAmt').value);
-  if(!amt||isNaN(amt)) { showToast('Enter amount','warn'); return; }
+  if(!amt||isNaN(amt)){showToast('Enter amount','warn');return;}
   const c=compartments[selectedComp];
-  if(!c.feedLog) c.feedLog=[];
+  if(!c.feedLog)c.feedLog=[];
   c.feedLog.push({date:document.getElementById('feedD').value,type:document.getElementById('feedType').value,amount:amt,note:document.getElementById('feedNote').value});
-  saveComps(); document.getElementById('feedAmt').value=''; document.getElementById('feedNote').value='';
-  renderFeedLogDet(); showPage('feeding');
-  showToast(`Feed logged for ${c.id}`);
+  saveComps();document.getElementById('feedAmt').value='';document.getElementById('feedNote').value='';
+  renderFeedLogDet();showToast(`Feed logged for ${c.id}`);
 }
 
-function delWeight(i) { compartments[selectedComp].history.splice(i,1); saveComps(); renderDetail(); }
-function delObs(i) { compartments[selectedComp].obsLog.splice(i,1); saveComps(); renderObsLog(); }
-function delFeed(i) { compartments[selectedComp].feedLog.splice(i,1); saveComps(); renderFeedLogDet(); }
+function delWeight(i){compartments[selectedComp].history.splice(i,1);saveComps();renderDetail();}
+function delObs(i){compartments[selectedComp].obsLog.splice(i,1);saveComps();renderObsLog();}
+function delFeed(i){compartments[selectedComp].feedLog.splice(i,1);saveComps();renderFeedLogDet();}
 
-function updateStatus(c) {
-  c.status = c.weight < thresholds.wtAlert ? 'alert' : c.weight < thresholds.wtWarn ? 'warn' : 'ok';
-}
-
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // ANALYTICS
-// ═══════════════════════════════════════════════════════════
-function renderAnalytics() {
-  const days = parseInt(document.getElementById('analyticsDays').value);
-  const today = new Date();
-  const labels = Array.from({length:days},(_,i)=>{ const d=new Date(today); d.setDate(d.getDate()-(days-1-i)); return d.toISOString().split('T')[0].slice(5); });
+// ════════════════════════════════════════════════
+function renderAnalytics(){
+  const days=parseInt(document.getElementById('analyticsDays').value);
+  const today=new Date();
+  const labels=Array.from({length:days},(_,i)=>{const d=new Date(today);d.setDate(d.getDate()-(days-1-i));return d.toISOString().split('T')[0].slice(5);});
+  const tc=darkMode?'#4A7090':'#7A95A8';
+  const gc=darkMode?'rgba(255,255,255,.04)':'rgba(0,0,0,.05)';
+  const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tc,font:{size:10,family:'Courier New'},boxWidth:12}},tooltip:{backgroundColor:darkMode?'#0F1E38':'#fff',borderColor:darkMode?'rgba(0,212,170,.3)':'rgba(0,0,0,.1)',borderWidth:1,titleColor:tc,bodyColor:darkMode?'#E8F4F1':'#0D1B2A'}},scales:{x:{ticks:{color:tc,font:{size:10,family:'Courier New'},maxRotation:30},grid:{color:gc}},y:{ticks:{color:tc,font:{size:10,family:'Courier New'}},grid:{color:gc}}}};
 
-  // All weight trends
-  const wDs = compartments.map((c,i)=>({
-    label:c.id, data:labels.map((_,j)=>{
-      const d=new Date(today); d.setDate(d.getDate()-(days-1-j));
-      const ds=d.toISOString().split('T')[0];
-      const h=c.history.filter(x=>x.date<=ds);
-      return h.length?h[h.length-1].weight:null;
-    }),
-    borderColor:COLORS[i],backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5,
-  }));
-  mkChart('chartAllWeight',{type:'line',data:{labels,datasets:wDs},options:chartOpts('g')});
+  // All weights
+  mkChart('chartAllW',{type:'line',data:{labels,datasets:compartments.map((c,i)=>({label:c.id,data:labels.map((_,j)=>{const d=new Date(today);d.setDate(d.getDate()-(days-1-j));const ds=d.toISOString().split('T')[0];const h=c.history.filter(x=>x.date<=ds);return h.length?h[h.length-1].weight:null;}),borderColor:COLORS[i],backgroundColor:'transparent',tension:.3,pointRadius:2,borderWidth:1.5}))},options:baseOpts});
 
   // Growth rates
-  const rates = compartments.map(c=>{
-    if(c.history.length<2) return 0;
-    const recent=c.history.filter(h=>{const d=new Date(h.date);const cutoff=new Date(today);cutoff.setDate(cutoff.getDate()-days);return d>=cutoff;});
-    if(recent.length<2) return 0;
-    return parseFloat(((recent[recent.length-1].weight-recent[0].weight)/Math.max(1,recent.length-1)).toFixed(2));
-  });
-  mkChart('chartGrowth',{type:'bar',data:{labels:compartments.map(c=>c.id),datasets:[{label:'g/day',data:rates,backgroundColor:rates.map(r=>r>0?'rgba(0,212,170,0.7)':'rgba(239,68,68,0.7)'),borderRadius:4}]},options:chartOpts('g/d')});
+  const rates=compartments.map(growthRate);
+  mkChart('chartGrow',{type:'bar',data:{labels:compartments.map(c=>c.id),datasets:[{label:'g/day',data:rates,backgroundColor:rates.map(r=>r>0?'rgba(0,212,170,.7)':'rgba(239,68,68,.7)'),borderRadius:4}]},options:{...baseOpts}});
 
-  // pH history
-  const phH=sensorHistory.slice(-days*4);
-  mkChart('chartPh',{type:'line',data:{
-    labels:phH.map(h=>h.time.slice(5,-3)),
-    datasets:[{label:'pH',data:phH.map(h=>h.ph),borderColor:'#00D4AA',backgroundColor:'rgba(0,212,170,.06)',fill:true,tension:.3,pointRadius:0,borderWidth:1.5},
-      {label:'Min',data:phH.map(()=>thresholds.phMin),borderColor:'rgba(245,158,11,.4)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},
-      {label:'Max',data:phH.map(()=>thresholds.phMax),borderColor:'rgba(239,68,68,.4)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}]
-  },options:chartOpts('')});
+  // pH
+  const ph=sensorHistory.slice(-days*4);
+  mkChart('chartPh',{type:'line',data:{labels:ph.map(h=>h.time.slice(5,16)),datasets:[{label:'pH',data:ph.map(h=>h.ph),borderColor:'#00D4AA',backgroundColor:'rgba(0,212,170,.06)',fill:true,tension:.3,pointRadius:0,borderWidth:1.5},{label:`Min ${th.phMin}`,data:ph.map(()=>th.phMin),borderColor:'rgba(245,158,11,.5)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},{label:`Max ${th.phMax}`,data:ph.map(()=>th.phMax),borderColor:'rgba(239,68,68,.5)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}]},options:baseOpts});
 
   // Sal + Temp
-  mkChart('chartSalTemp',{type:'line',data:{
-    labels:phH.map(h=>h.time.slice(5,-3)),
-    datasets:[
-      {label:'Salinity (ppt)',data:phH.map(h=>h.sal),borderColor:'#3B82F6',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y'},
-      {label:'Temp (°C)',data:phH.map(h=>h.tmp),borderColor:'#F59E0B',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y1'},
-    ]
-  },options:{...chartOpts(),...{scales:{x:{ticks:{color:'#4A7090',font:{size:10,family:'Courier New'},maxRotation:30},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#3B82F6',font:{size:10,family:'Courier New'}},grid:{color:'rgba(255,255,255,.04)'}},y1:{position:'right',ticks:{color:'#F59E0B',font:{size:10,family:'Courier New'}},grid:{drawOnChartArea:false}}}}}});
+  mkChart('chartSalTmp',{type:'line',data:{labels:ph.map(h=>h.time.slice(5,16)),datasets:[{label:'Salinity (ppt)',data:ph.map(h=>h.sal),borderColor:'#3B82F6',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y'},{label:'Temp (°C)',data:ph.map(h=>h.tmp),borderColor:'#F59E0B',backgroundColor:'transparent',tension:.3,pointRadius:0,borderWidth:1.5,yAxisID:'y1'}]},options:{...baseOpts,scales:{...baseOpts.scales,y:{...baseOpts.scales.y,ticks:{...baseOpts.scales.y.ticks,color:'#3B82F6'}},y1:{position:'right',ticks:{color:'#F59E0B',font:{size:10,family:'Courier New'}},grid:{drawOnChartArea:false}}}}});
 
   // Harvest table
-  document.getElementById('harvestTable').innerHTML = `<table class="tbl"><thead><tr><th>COMPARTMENT</th><th>CURRENT</th><th>INITIAL</th><th>GAIN</th><th>RATE (g/day)</th><th>DAYS TO HARVEST</th><th>EST. DATE</th></tr></thead><tbody>` +
+  document.getElementById('harvestTable').innerHTML=`<table class="tbl"><thead><tr><th>COMPARTMENT</th><th>CURRENT</th><th>INITIAL</th><th>GAIN</th><th>RATE (g/d)</th><th>DAYS TO HARVEST</th><th>EST. DATE</th></tr></thead><tbody>`+
   compartments.map(c=>{
-    const gain=c.weight-c.initWeight;
-    const recent=c.history.filter(h=>{const d=new Date(h.date);const cut=new Date();cut.setDate(cut.getDate()-7);return d>=cut;});
-    const rate=recent.length>1?(recent[recent.length-1].weight-recent[0].weight)/Math.max(1,recent.length-1):0;
+    const gain=c.weight-c.initWeight;const rate=growthRate(c);
     const rem=rate>0?(cfg.target-c.weight)/rate:null;
-    const eta=rem!==null&&rem>0?new Date(Date.now()+rem*86400000).toLocaleDateString('en-PH'):'—';
     const ready=c.weight>=cfg.target;
-    return `<tr>
-      <td class="td-m">${c.id} ${c.name}</td>
-      <td class="td-m">${c.weight.toFixed(1)}g</td>
-      <td>${c.initWeight.toFixed(1)}g</td>
-      <td style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g</td>
-      <td class="td-m">${rate.toFixed(2)}</td>
-      <td style="color:${ready?'var(--teal)':'var(--purple)'}">${ready?'✓ READY':(rem!==null&&rem>0?Math.ceil(rem)+' days':'—')}</td>
-      <td style="color:var(--text3)">${ready?'Now':eta}</td>
-    </tr>`;
+    const eta=rem!=null&&rem>0?new Date(Date.now()+rem*86400000).toLocaleDateString('en-PH'):'—';
+    return `<tr><td class="td-m">${c.id}</td><td class="td-m">${c.weight.toFixed(1)}g</td><td>${c.initWeight.toFixed(1)}g</td>
+    <td style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g</td>
+    <td class="td-m">${rate.toFixed(2)}</td>
+    <td style="color:${ready?'var(--teal)':'var(--purple)'}">${ready?'✓ READY':rem!=null&&rem>0?Math.ceil(rem)+' days':'—'}</td>
+    <td style="color:var(--text3)">${ready?'Now':eta}</td></tr>`;
   }).join('')+'</tbody></table>';
 }
 
-function mkChart(id, cfg_) {
-  if(charts[id]) charts[id].destroy();
-  charts[id]=new Chart(document.getElementById(id).getContext('2d'),cfg_);
-}
-
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // FEEDING PAGE
-// ═══════════════════════════════════════════════════════════
-function renderFeedingPage() {
-  const today = new Date();
-  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-  let weekHtml='';
-  for(let i=6;i>=0;i--) {
-    const d=new Date(today); d.setDate(d.getDate()-i);
+// ════════════════════════════════════════════════
+function renderFeedingPage(){
+  const today=new Date();
+  const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  document.getElementById('feedWeek').innerHTML=Array.from({length:7},(_,i)=>{
+    const d=new Date(today);d.setDate(d.getDate()-(6-i));
     const ds=d.toISOString().split('T')[0];
-    const dayFeeds=compartments.filter(c=>(c.feedLog||[]).some(f=>f.date===ds)).length;
-    const cls=dayFeeds===N?'fed':dayFeeds>0?'partial':i===0?'upcoming':'missed';
-    weekHtml+=`<div class="feed-day"><div class="feed-day-lbl">${days[d.getDay()]}</div>
-      ${Array.from({length:Math.min(N,10)},(_,j)=>`<div class="feed-dot ${j<dayFeeds?cls:'upcoming'}"></div>`).join('')}
-      <div style="font-size:9px;color:var(--text3);margin-top:4px">${dayFeeds}/${N}</div>
-    </div>`;
-  }
-  document.getElementById('feedWeek').innerHTML=weekHtml;
+    const n=compartments.filter(c=>(c.feedLog||[]).some(f=>f.date===ds)).length;
+    const cls=n===N?'fd-fed':n>0?'fd-partial':i===6?'fd-upcoming':'fd-missed';
+    return `<div class="feed-day"><div class="feed-day-lbl">${DAYS[d.getDay()]}</div>${Array.from({length:Math.min(N,10)},(_,j)=>`<div class="feed-dot ${j<n?cls:'fd-upcoming'}"></div>`).join('')}<div style="font-size:9px;color:var(--text3);margin-top:4px">${n}/${N}</div></div>`;
+  }).join('');
 
-  // Bulk form date
   document.getElementById('bFeedD').value=today.toISOString().split('T')[0];
 
-  // All feeds table
-  const allFeeds=[];
-  compartments.forEach(c=>(c.feedLog||[]).forEach(f=>allFeeds.push({...f,comp:c.id,name:c.name})));
-  allFeeds.sort((a,b)=>b.date.localeCompare(a.date));
-  document.getElementById('allFeedLog').innerHTML=allFeeds.slice(0,30).map(f=>
-    `<tr><td class="td-m">${f.date}</td><td style="color:var(--teal)">${f.comp}</td><td style="color:var(--amber)">${f.type}</td><td class="td-m">${f.amount}g</td><td style="color:var(--text3)">${f.note||''}</td></tr>`
-  ).join('')||'<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No feeding records yet</td></tr>';
+  const all=[];
+  compartments.forEach(c=>(c.feedLog||[]).forEach(f=>all.push({...f,cid:c.id})));
+  all.sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('allFeedLog').innerHTML=all.slice(0,30).map(f=>
+    `<tr><td class="td-m">${f.date}</td><td style="color:var(--teal)">${f.cid}</td><td style="color:var(--amber)">${f.type}</td><td class="td-m">${f.amount}g</td><td style="color:var(--text3)">${f.note||''}</td></tr>`
+  ).join('')||noDataRow(5);
 }
 
-function bulkFeed() {
+function bulkFeed(){
   const amt=parseFloat(document.getElementById('bFeedAmt').value);
-  if(!amt||isNaN(amt)) { showToast('Enter amount','warn'); return; }
+  if(!amt||isNaN(amt)){showToast('Enter amount','warn');return;}
   const date=document.getElementById('bFeedD').value;
   const type=document.getElementById('bFeedType').value;
   const note=document.getElementById('bFeedNote').value;
-  compartments.forEach(c=>{ if(!c.feedLog) c.feedLog=[]; c.feedLog.push({date,type,amount:amt,note}); });
-  saveComps(); renderFeedingPage(); showToast(`Feeding logged for all ${N} compartments`);
+  compartments.forEach(c=>{if(!c.feedLog)c.feedLog=[];c.feedLog.push({date,type,amount:amt,note});});
+  saveComps();renderFeedingPage();showToast(`✓ Feeding logged for all ${N} compartments`);
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // ALERTS
-// ═══════════════════════════════════════════════════════════
-function checkAlerts() {
+// ════════════════════════════════════════════════
+function checkAlerts(){
   const triggered=[];
   const {ph,salinity:sal,temperature:tmp}=sensors;
-  if(ph<thresholds.phMin||ph>thresholds.phMax) triggered.push({sensor:'pH',val:ph.toFixed(2),th:`${thresholds.phMin}–${thresholds.phMax}`,level:ph<thresholds.phMin-0.5||ph>thresholds.phMax+0.5?'alert':'warn'});
-  if(sal<thresholds.salMin||sal>thresholds.salMax) triggered.push({sensor:'Salinity',val:sal.toFixed(1)+'ppt',th:`${thresholds.salMin}–${thresholds.salMax}ppt`,level:'alert'});
-  if(tmp<thresholds.tmpMin||tmp>thresholds.tmpMax) triggered.push({sensor:'Temperature',val:tmp.toFixed(1)+'°C',th:`${thresholds.tmpMin}–${thresholds.tmpMax}°C`,level:'warn'});
+  if(ph<th.phMin||ph>th.phMax)triggered.push({sensor:'pH',val:ph.toFixed(2),threshold:`${th.phMin}–${th.phMax}`,level:Math.abs(ph-7.5)>1.5?'alert':'warn'});
+  if(sal<th.salMin||sal>th.salMax)triggered.push({sensor:'Salinity',val:sal.toFixed(1)+'ppt',threshold:`${th.salMin}–${th.salMax}ppt`,level:'alert'});
+  if(tmp<th.tmpMin||tmp>th.tmpMax)triggered.push({sensor:'Temperature',val:tmp.toFixed(1)+'°C',threshold:`${th.tmpMin}–${th.tmpMax}°C`,level:'warn'});
   compartments.forEach(c=>{
-    if(c.weight<thresholds.wtAlert) triggered.push({sensor:c.id+' Weight',val:c.weight.toFixed(1)+'g',th:'<'+thresholds.wtAlert+'g',level:'alert'});
-    else if(c.weight<thresholds.wtWarn) triggered.push({sensor:c.id+' Weight',val:c.weight.toFixed(1)+'g',th:'<'+thresholds.wtWarn+'g',level:'warn'});
+    if(c.weight<th.wtAlert)triggered.push({sensor:c.id+' Weight',val:c.weight.toFixed(1)+'g',threshold:'<'+th.wtAlert+'g',level:'alert'});
+    else if(c.weight<th.wtWarn)triggered.push({sensor:c.id+' Weight',val:c.weight.toFixed(1)+'g',threshold:'<'+th.wtWarn+'g',level:'warn'});
   });
-  const bellDot=document.getElementById('bellDot');
-  bellDot.className='bell-dot'+(triggered.length?' show':'');
-  if(triggered.length&&document.getElementById('soundAlerts').checked) {
-    try{const ctx=new AudioContext();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);o.start();o.stop(ctx.currentTime+0.3);}catch(e){}
+  const hasBell=triggered.length>0;
+  document.getElementById('bellDot').className='bell-dot'+(hasBell?' show':'');
+  document.getElementById('bnDot').className='bn-dot'+(hasBell?' show':'');
+  if(triggered.length&&document.getElementById('soundAlerts')?.checked){
+    try{const ctx=new AudioContext();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(.2,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.35);o.start();o.stop(ctx.currentTime+.35);}catch(e){}
   }
-  const now=new Date().toLocaleString();
-  triggered.forEach(a=>{ if(!alertLog.find(x=>x.sensor===a.sensor&&x.time===now)) alertLog.unshift({...a,time:now}); });
-  alertLog=alertLog.slice(0,50);
-  localStorage.setItem('alertLog',JSON.stringify(alertLog));
+  const now=new Date().toLocaleString('en-PH');
+  triggered.forEach(a=>{alertLog.unshift({...a,time:now});});
+  alertLog=alertLog.slice(0,60);
+  try{localStorage.setItem('alertLog',JSON.stringify(alertLog));}catch(e){}
   return triggered;
 }
 
-function renderAlertsPage() {
+function renderAlertsPage(){
   const active=checkAlerts();
-  const el=document.getElementById('activeAlerts');
-  el.innerHTML=active.length?active.map(a=>`
+  document.getElementById('activeAlerts').innerHTML=active.length?active.map(a=>`
     <div class="alert-item ${a.level}-alert">
-      <div class="ai-icon" style="background:${a.level==='alert'?'var(--red-dim)':'var(--amber-dim)'}">
-        ${a.level==='alert'?'🚨':'⚠️'}
-      </div>
-      <div><div class="ai-title">${a.sensor}</div><div class="ai-sub">Reading: ${a.val} | Threshold: ${a.th}</div></div>
+      <div class="ai-icon" style="background:${a.level==='alert'?'var(--red-d)':'var(--amber-d)'}">${a.level==='alert'?'🚨':'⚠️'}</div>
+      <div><div class="ai-title">${a.sensor}</div><div class="ai-sub">${a.val} · Threshold: ${a.threshold}</div></div>
       <div class="ai-time">${new Date().toLocaleTimeString()}</div>
-    </div>`).join('') : '<div style="color:var(--teal);font-size:12px;padding:16px;text-align:center">✓ All parameters within thresholds</div>';
+    </div>`).join(''):`<div style="color:var(--teal);font-size:12px;padding:18px;text-align:center;background:var(--teal-d);border-radius:var(--r);border:1px solid rgba(0,212,170,.2)">✓ All parameters within thresholds</div>`;
 
-  document.getElementById('thPhMin').value=thresholds.phMin;
-  document.getElementById('thPhMax').value=thresholds.phMax;
-  document.getElementById('thSalMin').value=thresholds.salMin;
-  document.getElementById('thSalMax').value=thresholds.salMax;
-  document.getElementById('thTmpMin').value=thresholds.tmpMin;
-  document.getElementById('thTmpMax').value=thresholds.tmpMax;
-  document.getElementById('thWtAlert').value=thresholds.wtAlert;
-  document.getElementById('thWtWarn').value=thresholds.wtWarn;
+  ['thPhMin','thPhMax','thSalMin','thSalMax','thTmpMin','thTmpMax','thWtAlert','thWtWarn'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el)el.value=[th.phMin,th.phMax,th.salMin,th.salMax,th.tmpMin,th.tmpMax,th.wtAlert,th.wtWarn][i];
+  });
 
   document.getElementById('alertHistory').innerHTML=alertLog.slice(0,20).map(a=>
-    `<tr><td class="td-m" style="font-size:10px">${a.time}</td><td style="color:var(--text2)">${a.sensor}</td><td class="td-m">${a.val}</td><td style="color:var(--text3)">${a.th}</td>
-    <td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:${a.level==='alert'?'var(--red-dim)':'var(--amber-dim)'};color:${a.level==='alert'?'var(--red)':'var(--amber)'}">${a.level.toUpperCase()}</span></td></tr>`
-  ).join('')||'<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No alert history</td></tr>';
+    `<tr><td class="td-m" style="font-size:10px">${a.time}</td><td>${a.sensor}</td><td class="td-m">${a.val}</td><td style="color:var(--text3)">${a.threshold}</td>
+    <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:${a.level==='alert'?'var(--red-d)':'var(--amber-d)'};color:${a.level==='alert'?'var(--red)':'var(--amber)'}">${a.level.toUpperCase()}</span></td></tr>`
+  ).join('')||noDataRow(5);
 }
 
-function saveThresholds() {
-  ['phMin','phMax','salMin','salMax','tmpMin','tmpMax','wtAlert','wtWarn'].forEach(k=>{
-    const ids={'phMin':'thPhMin','phMax':'thPhMax','salMin':'thSalMin','salMax':'thSalMax','tmpMin':'thTmpMin','tmpMax':'thTmpMax','wtAlert':'thWtAlert','wtWarn':'thWtWarn'};
-    thresholds[k]=parseFloat(document.getElementById(ids[k]).value);
-    localStorage.setItem('th_'+k,thresholds[k]);
-  });
-  compartments.forEach(c=>updateStatus(c)); saveComps();
-  showToast('Thresholds saved','ok');
+function saveThresholds(){
+  const ids={phMin:'thPhMin',phMax:'thPhMax',salMin:'thSalMin',salMax:'thSalMax',tmpMin:'thTmpMin',tmpMax:'thTmpMax',wtAlert:'thWtAlert',wtWarn:'thWtWarn'};
+  Object.entries(ids).forEach(([k,id])=>{th[k]=parseFloat(document.getElementById(id).value);lsSave('th_'+k,th[k]);});
+  compartments.forEach(c=>updateStatus(c));saveComps();showToast('✓ Thresholds saved');
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // AI ASSISTANT
-// ═══════════════════════════════════════════════════════════
-function renderAIPage() {
-  const prompts=[
-    'Overall system health check',
-    'Which crab is growing the fastest?',
-    'Which crab needs attention?',
-    'Optimal feeding schedule recommendation',
-    'Water quality analysis',
-    'Harvest readiness report',
-  ];
-  document.getElementById('globalAiPrompts').innerHTML=prompts.map(p=>`<span class="qp" onclick="askGlobalAI('${p}')">${p}</span>`).join('');
-  if(!document.getElementById('globalAiChat').innerHTML) {
-    appendMsg('globalAiChat','ai','Hello! I\'m your AI crab health assistant powered by Claude. I have access to all your sensor readings and compartment data. Ask me anything about your crab fattening system!');
-  }
+// ════════════════════════════════════════════════
+function renderAIPage(){
+  const prompts=['Overall system health check','Which crab is growing fastest?','Which crab needs attention?','Optimal feeding schedule','Water quality analysis','Harvest readiness report'];
+  document.getElementById('globalQP').innerHTML=prompts.map(p=>`<button class="qp" onclick="askGlobalAI('${p}')">${p}</button>`).join('');
+  if(!document.getElementById('globalChat').innerHTML)
+    appendMsg('globalChat','ai','Hello! I\'m your AI crab health assistant powered by Claude. I have access to all live sensor readings and compartment weight data. Ask me anything!');
 }
 
-function buildSystemContext() {
-  const weights=compartments.map(c=>c.weight);
-  const gains=compartments.map(c=>c.weight-c.initWeight);
-  const rates=compartments.map(c=>{
-    const r=c.history.filter(h=>{const d=new Date(h.date);const cut=new Date();cut.setDate(cut.getDate()-7);return d>=cut;});
-    return r.length>1?((r[r.length-1].weight-r[0].weight)/Math.max(1,r.length-1)).toFixed(2):0;
-  });
-  return `You are an expert AI assistant for a mud crab (Scylla serrata) fattening system in the Philippines. You have access to live sensor data and should give practical, specific advice.
+function buildSysCtx(){
+  const rates=compartments.map(c=>growthRate(c));
+  return `You are an expert AI assistant for a mud crab (Scylla serrata) fattening system in the Philippines. Give concise, practical advice with bullet points.
 
-CURRENT SENSOR READINGS:
+LIVE SENSOR READINGS:
 - pH: ${sensors.ph.toFixed(2)} (optimal 7.5–8.5)
-- Salinity: ${sensors.salinity.toFixed(1)} ppt (optimal 10–25 ppt)  
-- Water Temperature: ${sensors.temperature.toFixed(1)}°C (optimal 25–30°C)
+- Salinity: ${sensors.salinity.toFixed(1)} ppt (optimal 10–25 ppt)
+- Temperature: ${sensors.temperature.toFixed(1)}°C (optimal 25–30°C)
 
-THRESHOLDS: pH ${thresholds.phMin}–${thresholds.phMax}, Salinity ${thresholds.salMin}–${thresholds.salMax}ppt, Temp ${thresholds.tmpMin}–${thresholds.tmpMax}°C
+COMPARTMENTS (10 total, harvest target: ${cfg.target}g):
+${compartments.map((c,i)=>`- ${c.id}: ${c.weight.toFixed(1)}g current, init ${c.initWeight.toFixed(1)}g, +${(c.weight-c.initWeight).toFixed(1)}g gain, ${rates[i]}g/day, ${c.status}`).join('\n')}
 
-COMPARTMENTS (${N} total, target harvest weight: ${cfg.target}g):
-${compartments.map((c,i)=>`- ${c.id} (${c.name}): ${c.weight.toFixed(1)}g current, ${c.initWeight.toFixed(1)}g initial, +${gains[i].toFixed(1)}g gain, ${rates[i]}g/day rate, status: ${c.status}`).join('\n')}
-
-ALERTS ACTIVE: ${checkAlerts().map(a=>a.sensor+' '+a.val).join(', ')||'none'}
-
-Give concise, practical advice. Use bullet points for lists. Mention specific compartment IDs when relevant.`;
+ACTIVE ALERTS: ${checkAlerts().map(a=>a.sensor+' '+a.val).join(', ')||'none'}`;
 }
 
-async function callClaude(systemPrompt, messages) {
-  if(!cfg.apiKey) {
-    return '⚠️ No API key configured. Please go to ⚙ Config and enter your Anthropic API key to enable AI features.';
-  }
-  try {
+async function callClaude(system,messages){
+  if(!cfg.apiKey)return'⚠️ No API key configured. Go to ⚙ Config and enter your Anthropic API key.';
+  try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system:systemPrompt,messages})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,system,messages}),
     });
     const data=await res.json();
-    if(data.error) return '⚠️ API Error: '+data.error.message;
+    if(data.error)return'⚠️ API Error: '+data.error.message;
     return data.content[0].text;
-  } catch(e) { return '⚠️ Connection error: '+e.message; }
+  }catch(e){return'⚠️ Connection error: '+e.message;}
 }
 
-const globalChatHistory=[];
-async function sendGlobalAI() {
-  const input=document.getElementById('globalAiInput');
-  const text=input.value.trim(); if(!text) return;
-  input.value='';
-  appendMsg('globalAiChat','user',text);
-  globalChatHistory.push({role:'user',content:text});
-  const typing=appendMsg('globalAiChat','ai','Analyzing your crab data...',true);
-  const reply=await callClaude(buildSystemContext(),globalChatHistory);
-  typing.remove();
-  appendMsg('globalAiChat','ai',reply);
-  globalChatHistory.push({role:'assistant',content:reply});
+async function sendGlobalAI(){
+  const inp=document.getElementById('globalAiInp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
+  appendMsg('globalChat','user',text);
+  globalChatHist.push({role:'user',content:text});
+  const typing=appendMsg('globalChat','ai','Analyzing your crab data…',true);
+  const reply=await callClaude(buildSysCtx(),globalChatHist);
+  typing.remove();appendMsg('globalChat','ai',reply);
+  globalChatHist.push({role:'assistant',content:reply});
 }
-async function askGlobalAI(p) { document.getElementById('globalAiInput').value=p; await sendGlobalAI(); }
+async function askGlobalAI(p){document.getElementById('globalAiInp').value=p;await sendGlobalAI();}
 
-const detChatHistory=[];
-async function sendDetAI() {
-  const input=document.getElementById('detAiInput');
-  const text=input.value.trim(); if(!text) return;
-  input.value='';
+async function sendDetAI(){
+  const inp=document.getElementById('detAiInp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
   const c=compartments[selectedComp];
-  appendMsg('detAiChat','user',text);
-  detChatHistory.push({role:'user',content:text});
-  const typing=appendMsg('detAiChat','ai','Analyzing '+c.id+'...',true);
-  const compContext=buildSystemContext()+`\n\nFOCUS ON: ${c.id} (${c.name})\nRecent weight history: ${c.history.slice(-7).map(h=>h.date.slice(5)+':'+h.weight+'g').join(', ')}\nObservations: ${(c.obsLog||[]).slice(-3).map(o=>o.date+' '+o.type+': '+o.note).join('; ')||'none'}\nFeeding: ${(c.feedLog||[]).slice(-5).map(f=>f.date+' '+f.type+' '+f.amount+'g').join(', ')||'none'}`;
-  const reply=await callClaude(compContext,detChatHistory);
-  typing.remove();
-  appendMsg('detAiChat','ai',reply);
-  detChatHistory.push({role:'assistant',content:reply});
+  appendMsg('detChat','user',text);
+  detChatHist.push({role:'user',content:text});
+  const typing=appendMsg('detChat','ai',`Analyzing ${c.id}…`,true);
+  const ctx=buildSysCtx()+`\n\nFOCUS: ${c.id} (${c.name})\nRecent: ${c.history.slice(-7).map(h=>h.date.slice(5)+':'+h.weight+'g').join(', ')}\nObs: ${(c.obsLog||[]).slice(-2).map(o=>o.date+' '+o.type+': '+o.note).join('; ')||'none'}\nFeeds: ${(c.feedLog||[]).slice(-5).map(f=>f.date+' '+f.type+' '+f.amount+'g').join(', ')||'none'}`;
+  const reply=await callClaude(ctx,detChatHist);
+  typing.remove();appendMsg('detChat','ai',reply);
+  detChatHist.push({role:'assistant',content:reply});
 }
-async function askDetAI(p) { document.getElementById('detAiInput').value=p; await sendDetAI(); }
+async function askDetAI(p){document.getElementById('detAiInp').value=p;await sendDetAI();}
 
-function appendMsg(containerId, role, text, isTyping=false) {
-  const el=document.getElementById(containerId);
+function appendMsg(cid,role,text,typing=false){
+  const el=document.getElementById(cid);
   const div=document.createElement('div');
-  div.className='msg '+role+(isTyping?' typing':'');
-  if(role==='ai') div.innerHTML=`<div class="msg-lbl">CARL</div>${text.replace(/\n/g,'<br>')}`;
+  div.className='msg '+role+(typing?' typing':'');
+  if(role==='ai')div.innerHTML=`<div class="msg-lbl">CLAUDE AI</div>${text.replace(/\n/g,'<br>')}`;
   else div.textContent=text;
-  el.appendChild(div);
-  el.scrollTop=el.scrollHeight;
+  el.appendChild(div);el.scrollTop=el.scrollHeight;
   return div;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // REPORTS
-// ═══════════════════════════════════════════════════════════
-function renderReports() {
+// ════════════════════════════════════════════════
+function renderReports(){
   const today=new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
-  const weights=compartments.map(c=>c.weight);
-  const gains=compartments.map(c=>c.weight-c.initWeight);
+  const ws=compartments.map(c=>c.weight);
+  const gs=compartments.map(c=>c.weight-c.initWeight);
   const ready=compartments.filter(c=>c.weight>=cfg.target).length;
   document.getElementById('reportContent').innerHTML=`
-  <div class="panel report-section">
+  <div class="panel">
     <div class="panel-title">SYSTEM SUMMARY — ${today}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-      ${[['Total Compartments','10'],['Ready to Harvest',ready+' crabs'],['Avg Weight',(weights.reduce((a,b)=>a+b,0)/N).toFixed(1)+'g'],
-         ['Total Biomass',(weights.reduce((a,b)=>a+b,0)/1000).toFixed(2)+'kg'],['Avg Gain',(gains.reduce((a,b)=>a+b,0)/N).toFixed(1)+'g'],
-         ['pH / Salinity / Temp',sensors.ph.toFixed(1)+' / '+sensors.salinity.toFixed(1)+'ppt / '+sensors.temperature.toFixed(1)+'°C']
-      ].map(([l,v])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px"><div style="font-size:9px;color:var(--text3)">${l}</div><div style="font-size:16px;font-weight:bold;margin-top:4px">${v}</div></div>`).join('')}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+      ${[['Total Compartments','10'],['Ready to Harvest',ready+' crabs'],['Avg Weight',(ws.reduce((a,b)=>a+b,0)/N).toFixed(1)+'g'],
+         ['Total Biomass',(ws.reduce((a,b)=>a+b,0)/1000).toFixed(2)+'kg'],['Avg Gain',(gs.reduce((a,b)=>a+b,0)/N).toFixed(1)+'g'],
+         ['pH / Sal / Temp',sensors.ph.toFixed(1)+' / '+sensors.salinity.toFixed(1)+'ppt / '+sensors.temperature.toFixed(1)+'°C']
+      ].map(([l,v])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px"><div style="font-size:9px;color:var(--text3)">${l}</div><div style="font-size:15px;font-weight:bold;margin-top:4px">${v}</div></div>`).join('')}
     </div>
   </div>
-  <div class="panel report-section">
-    <div class="panel-title">COMPARTMENT STATUS TABLE</div>
-    <table class="tbl"><thead><tr><th>ID</th><th>NAME</th><th>CURRENT</th><th>INITIAL</th><th>GAIN</th><th>STATUS</th><th>HARVEST</th></tr></thead><tbody>
+  <div class="panel">
+    <div class="panel-title">COMPARTMENT STATUS</div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>NAME</th><th>CURRENT</th><th>INITIAL</th><th>GAIN</th><th>RATE</th><th>STATUS</th><th>HARVEST ETA</th></tr></thead><tbody>
     ${compartments.map(c=>{
-      const gain=c.weight-c.initWeight;
-      const rate=c.history.length>2?(c.weight-c.history[Math.max(0,c.history.length-8)].weight)/Math.min(7,c.history.length-1):0;
+      const gain=c.weight-c.initWeight;const rate=growthRate(c);
       const rem=rate>0?Math.ceil((cfg.target-c.weight)/rate):null;
-      return `<tr>
-        <td class="td-m">${c.id}</td><td>${c.name}</td>
-        <td class="td-m">${c.weight.toFixed(1)}g</td><td>${c.initWeight.toFixed(1)}g</td>
-        <td style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g</td>
-        <td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:${c.status==='ok'?'var(--teal-dim)':c.status==='warn'?'var(--amber-dim)':'var(--red-dim)'};color:${c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)'}">${c.status.toUpperCase()}</span></td>
-        <td style="color:var(--purple)">${c.weight>=cfg.target?'✓ READY':rem?rem+' days':'—'}</td>
-      </tr>`;
+      return `<tr><td class="td-m">${c.id}</td><td>${c.name}</td><td class="td-m">${c.weight.toFixed(1)}g</td><td>${c.initWeight.toFixed(1)}g</td>
+      <td style="color:${gain>=0?'var(--teal)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}g</td>
+      <td class="td-m">${rate.toFixed(2)}g/d</td>
+      <td><span style="font-size:9px;padding:2px 7px;border-radius:8px;background:${c.status==='ok'?'var(--teal-d)':c.status==='warn'?'var(--amber-d)':'var(--red-d)'};color:${c.status==='ok'?'var(--teal)':c.status==='warn'?'var(--amber)':'var(--red)'}">${c.status.toUpperCase()}</span></td>
+      <td style="color:var(--purple)">${c.weight>=cfg.target?'✓ READY':rem?rem+' days':'—'}</td></tr>`;
     }).join('')}
-    </tbody></table>
+    </tbody></table></div>
   </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // ESP32 / FIREBASE POLLING
-// ═══════════════════════════════════════════════════════════
-async function fetchESP32() {
-  try {
+// ════════════════════════════════════════════════
+async function fetchESP32(){
+  try{
     const res=await fetch(cfg.esp,{signal:AbortSignal.timeout(4000)});
     const data=await res.json();
-    ingestData(data,'esp32');
-    setConnBadge('online');
-  } catch(e) { setConnBadge('offline'); }
+    ingestData(data,'esp32');setConn('online');
+  }catch(e){setConn('offline');}
 }
 
-async function fetchFirebase() {
-  try {
+async function fetchFirebase(){
+  try{
     const res=await fetch(cfg.fbUrl+cfg.fbPath+'.json',{signal:AbortSignal.timeout(6000)});
     const data=await res.json();
-    if(data) { ingestData(data,'firebase'); document.getElementById('fbBadge').style.display=''; }
-  } catch(e) { }
+    if(data){ingestData(data,'firebase');document.getElementById('connBadge').textContent='⬤ FIREBASE';}
+  }catch(e){}
 }
 
-function ingestData(data, source) {
-  if(typeof data.ph==='number') sensors.ph=data.ph;
-  if(typeof data.salinity==='number') sensors.salinity=data.salinity;
-  if(typeof data.temperature==='number') sensors.temperature=data.temperature;
-  if(Array.isArray(data.weights)) {
-    const now=new Date();
-    const ds=now.toISOString().split('T')[0];
-    const ts=now.toTimeString().slice(0,5);
+function ingestData(data,source){
+  if(typeof data.ph==='number')sensors.ph=data.ph;
+  if(typeof data.salinity==='number')sensors.salinity=data.salinity;
+  if(typeof data.temperature==='number')sensors.temperature=data.temperature;
+  if(Array.isArray(data.weights)){
+    const now=new Date();const ds=now.toISOString().split('T')[0];const ts=now.toTimeString().slice(0,5);
     data.weights.forEach((w,i)=>{
-      if(i<N&&typeof w==='number') {
+      if(i<N&&typeof w==='number'){
         compartments[i].weight=parseFloat(w.toFixed(1));
         updateStatus(compartments[i]);
         const last=compartments[i].history[compartments[i].history.length-1];
-        if(!last||last.date!==ds) {
-          compartments[i].history.push({date:ds,time:ts,weight:compartments[i].weight,note:source+' auto',source});
-        } else { last.weight=compartments[i].weight; }
+        if(!last||last.date!==ds)compartments[i].history.push({date:ds,time:ts,weight:compartments[i].weight,note:source+' auto',source});
+        else last.weight=compartments[i].weight;
       }
     });
     saveComps();
   }
-  // Record sensor history
   sensorHistory.push({time:new Date().toISOString(),ph:sensors.ph,sal:sensors.salinity,tmp:sensors.temperature});
-  sensorHistory=sensorHistory.slice(-200);
-  localStorage.setItem('sensorHistory',JSON.stringify(sensorHistory));
-  const active=document.querySelector('.page.active').id;
-  if(active==='pageOverview') renderOverview();
-  else if(active==='pageAnalytics') renderAnalytics();
-  renderSidebar();
-  checkAlerts();
+  sensorHistory=sensorHistory.slice(-300);
+  try{localStorage.setItem('sensorHist',JSON.stringify(sensorHistory));}catch(e){}
+  const active=document.querySelector('.page.active')?.id;
+  if(active==='pageOverview')renderOverview();
+  else if(active==='pageAnalytics')renderAnalytics();
+  renderSidebar();checkAlerts();
 }
 
-function setConnBadge(state) {
+function setConn(state){
   const b=document.getElementById('connBadge');
-  if(cfg.esp||cfg.fbUrl) { b.textContent=state==='online'?'⬤ LIVE':'⬤ RECONNECTING…'; b.className='conn-badge '+(state==='online'?'online':'offline'); }
-  else { b.textContent='⬤ DEMO MODE'; b.className='conn-badge demo'; }
+  if(cfg.esp||cfg.fbUrl){b.textContent=state==='online'?'⬤ LIVE':'⬤ RECONNECTING…';b.className='conn-badge '+(state==='online'?'online':'offline');}
+  else{b.textContent='⬤ DEMO';b.className='conn-badge demo';}
 }
 
-function startPolling() {
-  if(pollTimer) clearInterval(pollTimer);
-  if(!cfg.esp&&!cfg.fbUrl) return;
-  const poll=()=>{ if(cfg.esp) fetchESP32(); if(cfg.fbUrl) fetchFirebase(); };
-  poll(); pollTimer=setInterval(poll,cfg.interval*1000);
+function startPolling(){
+  if(pollTimer)clearInterval(pollTimer);
+  if(!cfg.esp&&!cfg.fbUrl)return;
+  const poll=()=>{if(cfg.esp)fetchESP32();if(cfg.fbUrl)fetchFirebase();};
+  poll();pollTimer=setInterval(poll,cfg.interval*1000);
 }
 
-// Demo simulation
-function demoUpdate() {
-  if(cfg.esp||cfg.fbUrl) return;
+// Demo simulation (15s)
+function demoUpdate(){
+  if(cfg.esp||cfg.fbUrl)return;
   sensors.ph=parseFloat((7.2+Math.random()*1.4).toFixed(2));
   sensors.salinity=parseFloat((10+Math.random()*14).toFixed(1));
   sensors.temperature=parseFloat((25+Math.random()*5).toFixed(1));
-  compartments.forEach(c=>{ c.weight=parseFloat((c.weight+(Math.random()*1.2-0.1)).toFixed(1)); updateStatus(c); });
+  compartments.forEach(c=>{c.weight=parseFloat((c.weight+(Math.random()*1.2-.1)).toFixed(1));updateStatus(c);});
   sensorHistory.push({time:new Date().toISOString(),ph:sensors.ph,sal:sensors.salinity,tmp:sensors.temperature});
-  sensorHistory=sensorHistory.slice(-200);
-  localStorage.setItem('sensorHistory',JSON.stringify(sensorHistory));
-  renderSidebar();
-  checkAlerts();
-  const active=document.querySelector('.page.active').id;
-  if(active==='pageOverview') renderOverview();
+  sensorHistory=sensorHistory.slice(-300);
+  try{localStorage.setItem('sensorHist',JSON.stringify(sensorHistory));}catch(e){}
+  renderSidebar();checkAlerts();
+  if(document.getElementById('pageOverview').classList.contains('active'))renderOverview();
 }
 setInterval(demoUpdate,15000);
-function manualRefresh() { if(cfg.esp||cfg.fbUrl) { if(cfg.esp)fetchESP32(); if(cfg.fbUrl)fetchFirebase(); } else { demoUpdate(); showToast('Demo: sensors randomized'); } }
+function manualRefresh(){if(cfg.esp||cfg.fbUrl){if(cfg.esp)fetchESP32();if(cfg.fbUrl)fetchFirebase();}else{demoUpdate();showToast('Demo: sensors updated');}}
 
-// ═══════════════════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════════════════
-function openConfig() {
+// ════════════════════════════════════════════════
+// CONFIG MODAL
+// ════════════════════════════════════════════════
+function openConfig(){
   document.getElementById('cfgEsp').value=cfg.esp;
   document.getElementById('cfgFbUrl').value=cfg.fbUrl;
   document.getElementById('cfgFbPath').value=cfg.fbPath;
@@ -1331,8 +1524,8 @@ function openConfig() {
   document.getElementById('cfgTarget').value=cfg.target;
   document.getElementById('cfgOverlay').classList.add('open');
 }
-function closeConfig() { document.getElementById('cfgOverlay').classList.remove('open'); }
-function saveConfig() {
+function closeConfig(){document.getElementById('cfgOverlay').classList.remove('open');}
+function saveConfig(){
   cfg.esp=document.getElementById('cfgEsp').value.trim();
   cfg.fbUrl=document.getElementById('cfgFbUrl').value.trim();
   cfg.fbPath=document.getElementById('cfgFbPath').value.trim()||'/crab_monitor/latest';
@@ -1340,88 +1533,81 @@ function saveConfig() {
   cfg.interval=Math.max(1,parseInt(document.getElementById('cfgInt').value)||5);
   cfg.calib=parseFloat(document.getElementById('cfgCalib').value)||420;
   cfg.target=parseFloat(document.getElementById('cfgTarget').value)||300;
-  ['esp','fb_url','fb_path','api_key','esp_int','calib','target'].forEach((k,i)=>
-    localStorage.setItem(['esp_url','fb_url','fb_path','api_key','esp_int','calib','target'][i],
-    [cfg.esp,cfg.fbUrl,cfg.fbPath,cfg.apiKey,cfg.interval,cfg.calib,cfg.target][i]));
-  closeConfig(); startPolling(); setConnBadge(false);
-  showToast(cfg.esp||cfg.fbUrl?'Connecting…':'Config saved','ok');
+  [['esp_url',cfg.esp],['fb_url',cfg.fbUrl],['fb_path',cfg.fbPath],['api_key',cfg.apiKey],['esp_int',cfg.interval],['calib',cfg.calib],['target',cfg.target]].forEach(([k,v])=>lsSave(k,v));
+  closeConfig();startPolling();setConn(false);
+  showToast(cfg.esp||cfg.fbUrl?'Connecting to ESP32…':'Config saved');
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // EXPORT
-// ═══════════════════════════════════════════════════════════
-function exportCSV() {
+// ════════════════════════════════════════════════
+function exportCSV(){
   let csv='Compartment,Name,Date,Time,Weight(g),Change(g),Note,Source\n';
   compartments.forEach(c=>c.history.forEach((h,i,arr)=>{
     const prev=arr[i-1];
-    csv+=`${c.id},"${c.name}",${h.date},${h.time||''},${h.weight},${prev?(h.weight-prev.weight).toFixed(1):''},${h.note||''},${h.source||''}\n`;
+    csv+=`${c.id},"${c.name}",${h.date},${h.time||''},${h.weight},${prev?(h.weight-prev.weight).toFixed(1):''},"${h.note||''}",${h.source||''}\n`;
   }));
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download=`crab_monitor_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+  dl(new Blob([csv],{type:'text/csv'}),`crab_monitor_${today()}.csv`);
   showToast('CSV exported');
 }
 
-function exportExcel() {
-  try {
+function exportExcel(){
+  try{
     const wb=XLSX.utils.book_new();
-    // Summary sheet
-    const summary=[['CRAB FATTENING MONITOR — REPORT','','','','',''],
-      ['Generated:',new Date().toLocaleString(),'','','',''],
+    const sum=[['CRAB FATTENING MONITOR v3','','','','',''],['Generated:',new Date().toLocaleString(),'','','',''],
       ['pH:',sensors.ph,'Salinity:',sensors.salinity+'ppt','Temp:',sensors.temperature+'°C'],['','','','','',''],
       ['ID','Name','Current(g)','Initial(g)','Gain(g)','Status'],
-      ...compartments.map(c=>[c.id,c.name,c.weight.toFixed(1),c.initWeight.toFixed(1),(c.weight-c.initWeight).toFixed(1),c.status.toUpperCase()])
-    ];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Summary');
-    // Weight history
-    const wRows=[['Compartment','Name','Date','Time','Weight(g)','Change(g)','Note']];
-    compartments.forEach(c=>c.history.forEach((h,i,arr)=>{
-      const prev=arr[i-1];
-      wRows.push([c.id,c.name,h.date,h.time||'',parseFloat(h.weight),prev?parseFloat((h.weight-prev.weight).toFixed(1)):'',h.note||'']);
-    }));
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(wRows),'Weight History');
-    // Feeding
-    const fRows=[['Compartment','Name','Date','Feed Type','Amount(g)','Note']];
-    compartments.forEach(c=>(c.feedLog||[]).forEach(f=>fRows.push([c.id,c.name,f.date,f.type,f.amount,f.note||''])));
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(fRows),'Feeding Log');
-    XLSX.writeFile(wb,`crab_report_${new Date().toISOString().split('T')[0]}.xlsx`);
-    showToast('Excel report exported','ok');
-  } catch(e) { showToast('Excel export failed: '+e.message,'err'); }
+      ...compartments.map(c=>[c.id,c.name,c.weight,c.initWeight,(c.weight-c.initWeight).toFixed(1),c.status.toUpperCase()])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sum),'Summary');
+    const wr=[['Compartment','Name','Date','Time','Weight(g)','Change(g)','Note']];
+    compartments.forEach(c=>c.history.forEach((h,i,a)=>{const p=a[i-1];wr.push([c.id,c.name,h.date,h.time||'',h.weight,p?parseFloat((h.weight-p.weight).toFixed(1)):'',h.note||'']);}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(wr),'Weight History');
+    const fr=[['Compartment','Name','Date','Feed Type','Amount(g)','Note']];
+    compartments.forEach(c=>(c.feedLog||[]).forEach(f=>fr.push([c.id,c.name,f.date,f.type,f.amount,f.note||''])));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(fr),'Feeding Log');
+    XLSX.writeFile(wb,`crab_report_${today()}.xlsx`);
+    showToast('✓ Excel report exported');
+  }catch(e){showToast('Export failed: '+e.message,'err');}
 }
 
-function resetAll() {
-  if(!confirm('Reset ALL data? This cannot be undone.')) return;
-  ['comps_v2','sensorHistory','alertLog'].forEach(k=>localStorage.removeItem(k));
-  compartments=loadCompartments(); sensorHistory=[]; alertLog=[];
-  renderOverview(); showToast('All data reset','warn');
+function resetAll(){
+  if(!confirm('Reset ALL data? This cannot be undone.'))return;
+  ['comps_v3','sensorHist','alertLog'].forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+  compartments=loadComps();sensorHistory=[];alertLog=[];
+  renderOverview();showToast('Data reset','warn');
 }
 
-// ═══════════════════════════════════════════════════════════
+function today(){return new Date().toISOString().split('T')[0];}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+
+// ════════════════════════════════════════════════
 // TOAST
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 let toastTimer;
-function showToast(msg,type='ok') {
+function showToast(msg,type='ok'){
   const t=document.getElementById('toast');
-  t.textContent=msg; t.className=`show t-${type}`;
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='',2800);
+  t.textContent=msg;t.className=`show t-${type}`;
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.className='',2800);
 }
 
-// ═══════════════════════════════════════════════════════════
-// BOOTSTRAP
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════
 compartments.forEach(c=>updateStatus(c));
+
+// Seed sensor history if empty
+if(!sensorHistory.length){
+  const now=new Date();
+  for(let i=60;i>=0;i--){
+    const d=new Date(now);d.setMinutes(d.getMinutes()-i*30);
+    sensorHistory.push({time:d.toISOString(),ph:parseFloat((7.5+Math.random()*.8).toFixed(2)),sal:parseFloat((13+Math.random()*5).toFixed(1)),tmp:parseFloat((26+Math.random()*2.5).toFixed(1))});
+  }
+  try{localStorage.setItem('sensorHist',JSON.stringify(sensorHistory));}catch(e){}
+}
+
 renderSidebar();
 renderOverview();
 startPolling();
-if(!sensorHistory.length) {
-  // Seed initial sensor history for demo charts
-  const now=new Date();
-  for(let i=40;i>=0;i--) {
-    const d=new Date(now); d.setMinutes(d.getMinutes()-i*30);
-    sensorHistory.push({time:d.toISOString(),ph:parseFloat((7.5+Math.random()*0.8).toFixed(2)),sal:parseFloat((13+Math.random()*5).toFixed(1)),tmp:parseFloat((26+Math.random()*2.5).toFixed(1))});
-  }
-  localStorage.setItem('sensorHistory',JSON.stringify(sensorHistory));
-}
 </script>
 </body>
 </html>
